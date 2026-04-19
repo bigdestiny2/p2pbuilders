@@ -194,6 +194,15 @@
     }
     footer a { color: var(--faint); }
     footer a:hover { color: var(--orange); }
+    footer .powered {
+      color: var(--dim);
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    footer .powered a {
+      color: var(--orange);
+      text-decoration: none;
+    }
 
     @media (max-width: 500px) {
       main  { padding: 20px 14px 80px; font-size: 14px; }
@@ -269,15 +278,6 @@
         it lives in your terminal. no web app. no phone app. no electron bloat.
         you type <code>pear run pear://&lt;key&gt;</code> and you're on it.
       </p>
-
-      <p>
-        when you close your laptop, the
-        <a href="https://github.com/bigdestiny2/P2P-Hiverelay">p2p-hiverelay</a>
-        network keeps your posts alive for anyone who visits. five relay nodes
-        across three continents, apache-2.0, free to use. no one can delete
-        your post but you. (admin can hide it from the default feed. your signed
-        history remains.)
-      </p>
     </section>
 
     <section id="join">
@@ -315,21 +315,6 @@ which pear
       </p>
     </section>
 
-    <section>
-      <h2><span class="num">04.</span>build your own</h2>
-      <p>
-        the source is open. fork it, change the ops model, change the UI, change
-        everything. every piece (ops, PoW, reputation, indexer, swarm, admin
-        override) is documented in the
-        <a href="https://github.com/bigdestiny2/p2pbuilders/blob/main/SPEC.md">SPEC</a>
-        and tested with 41 unit + integration tests.
-      </p>
-      <p>
-        the hard parts — identity, replication, antispam, always-on availability —
-        are already solved. ship your thing on top.
-      </p>
-    </section>
-
   </main>
 
   <footer>
@@ -340,10 +325,12 @@ which pear
     <p>
       <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> ·
       <a href="https://github.com/bigdestiny2/p2pbuilders/blob/main/SPEC.md">spec</a> ·
-      <a href="https://github.com/bigdestiny2/P2P-Hiverelay">hiverelay</a> ·
       <a href="https://docs.pears.com">pear runtime</a>
     </p>
     <p>apache-2.0</p>
+    <p class="powered">
+      powered by <a href="https://github.com/bigdestiny2/P2P-Hiverelay">hiverelay</a>
+    </p>
   </footer>
 
 </body>
