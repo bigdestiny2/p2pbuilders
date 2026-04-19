@@ -2,6 +2,8 @@
 
 A permissionless, peer-to-peer Hacker News clone on the [Pear](https://docs.pears.com/) + [Bare](https://github.com/holepunchto/bare) stack. Single feed, one hypercore per identity, hashcash-gated posts, reputation-weighted voting. Posts are mirrored across the [p2p-hiverelay](https://github.com/bigdestiny2/P2P-Hiverelay) network so they stay online when authors close their laptops.
 
+Repo: https://github.com/bigdestiny2/p2pbuilders · Live: `pear run pear://gopfpwat99tcuaakasfnftrds3j6t7srdmi3qidbhm9xeizt1a5y`
+
 ## Try it
 
 Install Pear once:
@@ -72,7 +74,7 @@ test/                 41 tests covering every layer
 ## Develop
 
 ```
-git clone <this-repo>
+git clone https://github.com/bigdestiny2/p2pbuilders.git
 cd p2pbuilders
 npm install
 
