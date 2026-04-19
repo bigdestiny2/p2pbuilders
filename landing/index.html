@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#ff6600" />
+  <title>p2pbuilders</title>
+  <meta name="description" content="A permissionless peer-to-peer hacker news for anons who build p2p. No servers. No accounts. Run it in your terminal." />
+  <meta property="og:title" content="p2pbuilders" />
+  <meta property="og:description" content="Permissionless P2P hacker news. Anons who build peer-to-peer because freedom." />
+  <meta property="og:type" content="website" />
+  <style>
+    :root {
+      --bg:       #f6f6ef;
+      --fg:       #0b0f14;
+      --dim:      #555;
+      --faint:    #828282;
+      --orange:   #ff6600;
+      --border:   #e0e0d2;
+      --code-bg:  #ebebe1;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:      #14130e;
+        --fg:      #ebe7d7;
+        --dim:     #aaa69a;
+        --faint:   #7a7568;
+        --orange:  #ff7a1a;
+        --border:  #2c2a22;
+        --code-bg: #1b1a15;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Verdana, Geneva, sans-serif;
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    a { color: var(--fg); }
+    a:hover { color: var(--orange); }
+
+    header {
+      background: var(--orange);
+      padding: 6px 12px;
+    }
+    header .bar {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    header .brand {
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      text-decoration: none;
+    }
+    header .nav {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+    }
+    header .nav a {
+      color: #000;
+      text-decoration: none;
+    }
+    header .nav a:hover { text-decoration: underline; }
+
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+      font-size: 15px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin: 0 0 6px;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font-size: 17px;
+      margin: 36px 0 8px;
+      color: var(--fg);
+      letter-spacing: -0.01em;
+    }
+    h2 .num {
+      color: var(--faint);
+      font-size: 13px;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      margin-right: 6px;
+    }
+    p { margin: 8px 0; }
+    .tagline {
+      color: var(--dim);
+      font-size: 15px;
+      margin: 4px 0 20px;
+    }
+
+    code, pre {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    code {
+      background: var(--code-bg);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    pre {
+      background: var(--code-bg);
+      padding: 10px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+      line-height: 1.5;
+      margin: 10px 0;
+    }
+    pre code { background: transparent; padding: 0; }
+
+    .manifesto p {
+      margin: 12px 0;
+      color: var(--fg);
+    }
+    .manifesto em {
+      font-style: normal;
+      color: var(--orange);
+    }
+
+    ol.steps {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+      margin: 16px 0;
+    }
+    ol.steps > li {
+      counter-increment: step;
+      margin: 20px 0;
+      padding-left: 32px;
+      position: relative;
+    }
+    ol.steps > li::before {
+      content: counter(step) ".";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: var(--orange);
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    ol.steps > li p { margin: 4px 0; }
+
+    .cta {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 10px 16px;
+      background: var(--orange);
+      color: #000;
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 4px;
+    }
+    .cta:hover { filter: brightness(1.08); color: #000; }
+
+    .pill {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--dim);
+      margin-right: 4px;
+      font-family: ui-monospace, monospace;
+    }
+
+    footer {
+      max-width: 720px;
+      margin: 40px auto 20px;
+      padding: 24px 16px 0;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--faint);
+      line-height: 1.8;
+    }
+    footer a { color: var(--faint); }
+    footer a:hover { color: var(--orange); }
+
+    @media (max-width: 500px) {
+      main  { padding: 20px 14px 80px; font-size: 14px; }
+      h1    { font-size: 22px; }
+      pre   { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="bar">
+      <a class="brand" href="/">p2pbuilders</a>
+      <nav class="nav">
+        <a href="#manifesto">manifesto</a>
+        <a href="#board">board</a>
+        <a href="#join">join</a>
+        <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <h1>p2pbuilders</h1>
+    <p class="tagline">a permissionless hacker news for anons who build peer-to-peer.</p>
+
+    <p>
+      <span class="pill">pear</span>
+      <span class="pill">bare</span>
+      <span class="pill">hypercore</span>
+      <span class="pill">hyperswarm</span>
+      <span class="pill">p2p-hiverelay</span>
+    </p>
+
+    <section id="manifesto" class="manifesto">
+      <h2><span class="num">01.</span>who we are</h2>
+
+      <p>
+        we're the people building peer-to-peer software because we think the
+        internet should work <em>without asking permission</em>.
+      </p>
+
+      <p>
+        no servers. no sign-ups. no account recovery. no companies to shut down.
+        no terms of service. no one to complain to. just keys, protocols, and code.
+      </p>
+
+      <p>
+        if centralized services are fragile, we work on the alternative.
+        if your data lives in someone else's database, you don't own it.
+        if your identity requires their approval, you don't have one.
+        this isn't a rant, it's a building project.
+      </p>
+
+      <p>
+        anonymity here isn't pretending. it's the default. everyone on this
+        network is a 32-byte public key. whatever name you go by is the one
+        you pick.
+      </p>
+    </section>
+
+    <section id="board">
+      <h2><span class="num">02.</span>the message board</h2>
+
+      <p>
+        p2pbuilders is a hacker news clone that runs on no servers. every
+        user runs their own node. posts sync peer-to-peer via hyperswarm.
+        every post is signed by its author's hypercore. reputation-weighted
+        voting, hashcash-gated submissions, no central moderator.
+      </p>
+
+      <p>
+        it lives in your terminal. no web app. no phone app. no electron bloat.
+        you type <code>pear run pear://&lt;key&gt;</code> and you're on it.
+      </p>
+
+      <p>
+        when you close your laptop, the
+        <a href="https://github.com/bigdestiny2/P2P-Hiverelay">p2p-hiverelay</a>
+        network keeps your posts alive for anyone who visits. five relay nodes
+        across three continents, apache-2.0, free to use. no one can delete
+        your post but you. (admin can hide it from the default feed. your signed
+        history remains.)
+      </p>
+    </section>
+
+    <section id="join">
+      <h2><span class="num">03.</span>join</h2>
+
+      <p>takes two minutes. you'll need <a href="https://nodejs.org">node.js</a> installed.</p>
+
+      <ol class="steps">
+
+        <li>
+          <p><strong>install pear</strong> — the p2p runtime holepunch ships.</p>
+<pre><code>npm install -g pear
+pear</code></pre>
+          <p>the second command bootstraps the real runtime. takes 30s on first run.</p>
+        </li>
+
+        <li>
+          <p><strong>add pear to your path.</strong> one-time setup.</p>
+<pre><code>echo 'export PATH="$HOME/Library/Application Support/pear/bin:$PATH"' &gt;&gt; ~/.zshrc
+source ~/.zshrc
+which pear
+# should print: /Users/you/Library/Application Support/pear/bin/pear</code></pre>
+        </li>
+
+        <li>
+          <p><strong>run the board.</strong></p>
+<pre><code>pear run pear://gopfpwat99tcuaakasfnftrds3j6t7srdmi3qidbhm9xeizt1a5y</code></pre>
+          <p>type <code>help</code> at the <code>›</code> prompt. submit a post to say hi.</p>
+        </li>
+
+      </ol>
+
+      <p style="margin-top:30px">
+        <a class="cta" href="https://github.com/bigdestiny2/p2pbuilders#readme">full docs on github</a>
+      </p>
+    </section>
+
+    <section>
+      <h2><span class="num">04.</span>build your own</h2>
+      <p>
+        the source is open. fork it, change the ops model, change the UI, change
+        everything. every piece (ops, PoW, reputation, indexer, swarm, admin
+        override) is documented in the
+        <a href="https://github.com/bigdestiny2/p2pbuilders/blob/main/SPEC.md">SPEC</a>
+        and tested with 41 unit + integration tests.
+      </p>
+      <p>
+        the hard parts — identity, replication, antispam, always-on availability —
+        are already solved. ship your thing on top.
+      </p>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>
+      no cookies. no tracking. no accounts. no server.<br>
+      this page is static; it calls nothing home.
+    </p>
+    <p>
+      <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> ·
+      <a href="https://github.com/bigdestiny2/p2pbuilders/blob/main/SPEC.md">spec</a> ·
+      <a href="https://github.com/bigdestiny2/P2P-Hiverelay">hiverelay</a> ·
+      <a href="https://docs.pears.com">pear runtime</a>
+    </p>
+    <p>apache-2.0</p>
+  </footer>
+
+</body>
+</html>
