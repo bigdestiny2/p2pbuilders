@@ -1,0 +1,69 @@
+# XcodeGen spec for the P2PBuilders iOS shell.
+#
+# To generate the .xcodeproj:
+#   brew install xcodegen
+#   cd ios-app && xcodegen
+#
+# After generating:
+#   open P2PBuilders.xcodeproj
+# Then add bare-kit-pear as a Swift Package dependency (File → Add Packages…)
+# pointing at your fork: https://github.com/bigdestiny2/bare-kit-pear
+#
+# If your SDK's module name is not "BareKit", update the `import BareKit`
+# line in BareBridge.swift accordingly.
+
+name: P2PBuilders
+options:
+  bundleIdPrefix: com.p2pbuilders
+  deploymentTarget:
+    iOS: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    ENABLE_BITCODE: NO
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1,2"   # iPhone + iPad
+
+targets:
+  P2PBuilders:
+    type: application
+    platform: iOS
+    sources:
+      - path: P2PBuilders
+        excludes:
+          - "**/.DS_Store"
+    resources:
+      - path: P2PBuilders/Resources
+        optional: false
+    info:
+      path: P2PBuilders/Info.plist
+      properties:
+        CFBundleDisplayName: P2PBuilders
+        CFBundleShortVersionString: "0.1"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities:
+          - arm64
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.p2pbuilders.app
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+# SPM dependencies (bare-kit-pear) are added after xcodegen runs, via
+# Xcode's File → Add Package Dependencies… (paste the repo URL, link the
+# BareKit product to the P2PBuilders target).

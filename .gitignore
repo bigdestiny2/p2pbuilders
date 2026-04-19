@@ -1,0 +1,31 @@
+# deps
+node_modules/
+
+# local storage / secrets (corestore data + identity keys)
+.data/
+.hiverelay-publish/
+.hiverelay-seed/
+.hiverelay-probe/
+.p2pbuilders.key
+primary.key
+
+# iOS build artifacts
+ios-app/build/
+ios-app/P2PBuilders.xcodeproj/
+ios-app/Pods/
+ios-app/P2PBuilders/Resources/backend.bundle.mjs
+ios-app/P2PBuilders/Resources/index.html
+ios-app/P2PBuilders/Resources/app.js
+ios-app/P2PBuilders/Resources/styles.css
+ios-app/P2PBuilders/Resources/transport.js
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# logs
+*.log
+npm-debug.log*
