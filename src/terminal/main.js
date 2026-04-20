@@ -151,7 +151,13 @@ async function main () {
     _display: [],      // what's actually on screen: pinned + rest
     threadId: null,    // opId hex when viewing a thread
     threadPost: null,
-    threadComments: []
+    threadComments: [],
+
+    // Compose mode — when set, stdin lines are collected into the body
+    // instead of being parsed as commands. Used for multi-line posts/replies.
+    compose: null      // { kind: 'post'|'reply', step: 'title'|'body',
+                       //   title?: string, bodyLines: string[],
+                       //   parentOpId?: string }
   }
 
   // ---- rendering ----
@@ -205,7 +211,7 @@ async function main () {
       rest.forEach((p, i) => renderPostLine(p, pinned.length + i + 1, false))
     }
 
-    process.stdout.write(`\n${ANSI.dim}commands: submit | open <n> | up/down <n> | delete <n> | sort <hot|new|top> | refresh | help | quit${ANSI.reset}\n`)
+    process.stdout.write(`\n${ANSI.dim}commands: submit · open <n> · up/down <n> · delete <n> · sort <hot|new|top> · r · help · quit${ANSI.reset}\n`)
   }
 
   function renderThread () {
@@ -256,7 +262,11 @@ async function main () {
   node.on('track', scheduleRedraw)
 
   // ---- REPL (stdin line buffer, portable between Bare and Node) ----
-  const prompt = () => { process.stdout.write(`${ANSI.orange}›${ANSI.reset} `) }
+  const composePrompt = () => { process.stdout.write(`${ANSI.dim}… ${ANSI.reset}`) }
+  const prompt = () => {
+    if (state.compose) return composePrompt()
+    process.stdout.write(`${ANSI.orange}›${ANSI.reset} `)
+  }
   function printLine (s) { process.stdout.write(s + '\n'); prompt() }
 
   let stdinBuf = ''
@@ -269,7 +279,8 @@ async function main () {
     while ((nl = stdinBuf.indexOf('\n')) >= 0) {
       const line = stdinBuf.slice(0, nl).replace(/\r$/, '')
       stdinBuf = stdinBuf.slice(nl + 1)
-      handle(line)
+      if (state.compose) handleCompose(line)
+      else handle(line)
     }
   })
   const shutdown = async () => {
@@ -303,6 +314,88 @@ async function main () {
 
   const isUrl = (s) => /^https?:\/\//.test(s)
 
+  // ---- compose mode: accumulates a multi-line body for submit/reply ----
+
+  function enterCompose (kind, { parentOpId = null } = {}) {
+    state.compose = {
+      kind,                   // 'post' or 'reply'
+      step: kind === 'post' ? 'title' : 'body',
+      title: '',
+      bodyLines: [],
+      parentOpId
+    }
+    process.stdout.write(
+      `\n${ANSI.orange}─── ${kind === 'post' ? 'new post' : 'new reply'} ───${ANSI.reset}\n` +
+      `${ANSI.dim}type ${ANSI.reset}.${ANSI.dim} on a blank line to submit · type ${ANSI.reset}:q${ANSI.dim} to cancel${ANSI.reset}\n`
+    )
+    if (kind === 'post') process.stdout.write(`${ANSI.dim}title:${ANSI.reset} `)
+    else process.stdout.write(`${ANSI.dim}write your reply…${ANSI.reset}\n`)
+  }
+
+  function exitCompose (msg) {
+    state.compose = null
+    if (msg) process.stdout.write(msg + '\n')
+    prompt()
+  }
+
+  async function handleCompose (line) {
+    const c = state.compose
+    if (!c) { prompt(); return }
+
+    const trimmed = line.trim()
+    if (trimmed === ':q' || trimmed === 'cancel') {
+      return exitCompose(`${ANSI.dim}cancelled.${ANSI.reset}`)
+    }
+
+    if (c.step === 'title') {
+      if (!trimmed) {
+        process.stdout.write(`${ANSI.red}title can't be empty · ${ANSI.reset}${ANSI.dim}title:${ANSI.reset} `)
+        return
+      }
+      c.title = trimmed
+      c.step = 'body'
+      process.stdout.write(`${ANSI.dim}body (multi-line OK):${ANSI.reset}\n`)
+      composePrompt()
+      return
+    }
+
+    // c.step === 'body'
+    if (line === '.') {
+      if (c.bodyLines.length === 0) {
+        process.stdout.write(`${ANSI.red}body is empty · write something or type ':q' to cancel${ANSI.reset}\n`)
+        composePrompt()
+        return
+      }
+      const body = c.bodyLines.join('\n').replace(/\s+$/, '')
+      process.stdout.write(`${ANSI.dim}minting pow…${ANSI.reset}`)
+      const t0 = Date.now()
+      try {
+        if (c.kind === 'post') {
+          // Detect if the whole body is just a URL (single line) — treat as link post.
+          const trim = body.trim()
+          const isSingleLineLink = !trim.includes('\n') && isUrl(trim)
+          const link = isSingleLineLink ? trim : null
+          const text = link ? '' : body
+          const { opId } = await rpc.dispatch('createPost', { title: c.title, body: text, link })
+          await refreshFeed()
+          process.stdout.write(`${ANSI.green}posted in ${Date.now() - t0}ms${ANSI.reset}\n`)
+          process.stdout.write(`${ANSI.dim}opId: ${ANSI.reset}${opId}\n`)
+        } else {
+          await rpc.dispatch('createComment', { parentOpId: c.parentOpId, body })
+          await refreshThread()
+          process.stdout.write(`${ANSI.green}replied in ${Date.now() - t0}ms${ANSI.reset}\n`)
+        }
+      } catch (err) {
+        process.stdout.write(`\n${ANSI.red}error: ${err.message}${ANSI.reset}\n`)
+      }
+      return exitCompose()
+    }
+
+    // Normal line — buffer it and stay in body mode.
+    c.bodyLines.push(line)
+    composePrompt()
+  }
+
   async function handle (line) {
     const parsed = parseCmd(line)
     if (!parsed) { prompt(); return }
@@ -313,16 +406,23 @@ async function main () {
         case '?':
           printLine(`
   ${ANSI.bold}feed commands${ANSI.reset}
-    submit "title" <body-or-url>   submit a post
+    submit                         new post (multi-line editor)
+    submit "title" <body>          new post (one-liner)
     open <n>                       open thread for post #n
     up <n>   down <n>              vote on post #n
     sort <hot|new|top>             change feed sort
     refresh  r                     reload feed
 
   ${ANSI.bold}thread commands${ANSI.reset}
-    reply <body>                   comment on current thread
+    reply                          reply (multi-line editor)
+    reply <body>                   reply (one-liner)
     up   down                      vote on the post (in thread)
     back b                         back to feed
+
+  ${ANSI.bold}compose editor${ANSI.reset}
+    <your text>                    any line joins the body
+    .                              submit (on its own line)
+    :q                             cancel
 
   ${ANSI.bold}moderation${ANSI.reset}
     delete <n>                     delete a post (author or admin)
@@ -370,8 +470,14 @@ ${amAdmin ? '\n  ' + ANSI.orange + '(admin) ' + ANSI.reset + 'you can delete any
           prompt()
           return
         case 'submit': {
+          // `submit` with no args → enter multi-line compose mode.
+          // `submit "title" body` → classic one-liner still works.
+          if (!rest.trim()) {
+            enterCompose('post')
+            return
+          }
           const { title, rest: body } = parseQuoted(rest)
-          if (!title) { printLine('usage: submit "title" <body-or-url>'); break }
+          if (!title) { printLine('usage: submit (multi-line) | submit "title" <body-or-url>'); break }
           const link = isUrl(body.trim()) ? body.trim() : null
           const text = link ? '' : body
           process.stdout.write(`${ANSI.dim}minting pow…${ANSI.reset}`)
@@ -382,6 +488,11 @@ ${amAdmin ? '\n  ' + ANSI.orange + '(admin) ' + ANSI.reset + 'you can delete any
           process.stdout.write(`${ANSI.green}posted in ${Date.now() - t0}ms${ANSI.reset}\n`)
           process.stdout.write(`${ANSI.dim}opId (copy for pinning): ${ANSI.reset}${opId}\n`)
           prompt()
+          return
+        }
+        case 'compose':
+        case 'c': {
+          enterCompose('post')
           return
         }
         case 'open': {
@@ -465,7 +576,11 @@ ${amAdmin ? '\n  ' + ANSI.orange + '(admin) ' + ANSI.reset + 'you can delete any
         }
         case 'reply': {
           if (!state.threadId) { printLine('no thread open. use: open <n>'); break }
-          if (!rest.trim()) { printLine('usage: reply <body>'); break }
+          // reply with no args → enter multi-line compose mode (as a reply)
+          if (!rest.trim()) {
+            enterCompose('reply', { parentOpId: state.threadId })
+            return
+          }
           process.stdout.write(`${ANSI.dim}minting pow…${ANSI.reset}`)
           const t0 = Date.now()
           await rpc.dispatch('createComment', { parentOpId: state.threadId, body: rest })
