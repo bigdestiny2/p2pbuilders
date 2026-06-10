@@ -6,7 +6,7 @@ const client = new HiveRelayClient('./.hiverelay-probe')
 await client.start()
 await new Promise(r => setTimeout(r, 4000))
 
-const k = hypercoreId.decode('gopfpwat99tcuaakasfnftrds3j6t7srdmi3qidbhm9xeizt1a5y')
+const k = hypercoreId.decode('dqz1e6fwyrz1mxj7eqsmcar3hnegrj491t5hnqjm9mda9tz8dzfy')
 const acceptances = await client.seed(k, { replicas: 8, timeout: 25000 })
 console.log(`\nseeded on ${acceptances.length} relay(s):\n`)
 for (const a of acceptances) {

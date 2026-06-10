@@ -1,8 +1,10 @@
 # p2pbuilders
 
-A permissionless, peer-to-peer Hacker News clone on the [Pear](https://docs.pears.com/) + [Bare](https://github.com/holepunchto/bare) stack. Single feed, one hypercore per identity, hashcash-gated posts, reputation-weighted voting. Posts are mirrored across the [p2p-hiverelay](https://github.com/bigdestiny2/P2P-Hiverelay) network so they stay online when authors close their laptops.
+A permissionless, peer-to-peer Hacker News clone that lives **entirely in your terminal**. One feed, one hypercore per identity, hashcash-gated posts, reputation-weighted voting — built on the [Pear](https://docs.pears.com/) + [Bare](https://github.com/holepunchto/bare) stack. Posts are mirrored across the [p2p-hiverelay](https://github.com/bigdestiny2/P2P-Hiverelay) network so they stay online when authors close their laptops.
 
-Repo: https://github.com/bigdestiny2/p2pbuilders · Live: `pear run pear://gopfpwat99tcuaakasfnftrds3j6t7srdmi3qidbhm9xeizt1a5y`
+It's a **TUI** — no browser, no webview, no GUI. You run one command and drive the whole board from the `›` prompt.
+
+Repo: https://github.com/bigdestiny2/p2pbuilders · Live: `pear run pear://dqz1e6fwyrz1mxj7eqsmcar3hnegrj491t5hnqjm9mda9tz8dzfy`
 
 ## Try it
 
@@ -17,15 +19,68 @@ export PATH="$HOME/Library/Application Support/pear/bin:$PATH"
 Run p2pbuilders:
 
 ```
-pear run pear://gopfpwat99tcuaakasfnftrds3j6t7srdmi3qidbhm9xeizt1a5y
+pear run pear://dqz1e6fwyrz1mxj7eqsmcar3hnegrj491t5hnqjm9mda9tz8dzfy
 ```
 
-Type `help` at the prompt.
+You'll land on the feed. Type `help` at the `›` prompt, or `submit "hello"` to say hi.
+
+## Using it
+
+The whole app is keyboard-driven from the `›` prompt. Type `help` any time to see this list in-app.
+
+**Feed**
+
+| command | what it does |
+| --- | --- |
+| `submit` | new post — opens the multi-line editor |
+| `submit "title" <body>` | new post in one line |
+| `open <n>` | open the thread for post #n |
+| `up <n>` / `down <n>` | vote post #n up or down |
+| `sort <hot\|new\|top>` | change how the feed is ordered |
+| `refresh` / `r` | reload the feed |
+
+**Inside a thread**
+
+| command | what it does |
+| --- | --- |
+| `reply` | reply — opens the multi-line editor |
+| `reply <body>` | reply in one line |
+| `up` / `down` | vote on the post you're viewing |
+| `back` / `b` | return to the feed |
+
+**Compose editor** (after `submit` / `reply` with no inline text)
+
+| key | what it does |
+| --- | --- |
+| `<your text>` | any line joins the body |
+| `.` | submit — on its own line |
+| `:q` | cancel |
+
+**Moderation**
+
+| command | what it does |
+| --- | --- |
+| `delete <n>` | delete a post (author, or admin for anyone) |
+| `delete` | delete the thread you're viewing |
+
+**Identity + infra**
+
+| command | what it does |
+| --- | --- |
+| `nick <name>` | set your nickname |
+| `me` | show your pubkey + stats |
+| `relays` | which relays are pinning you (or the current thread's author) |
+| `opid <n>` | print a post's opId |
+| `quit` / `q` | exit |
+
+> Posts and comments carry a small proof-of-work (~80ms / ~20ms), so there's a brief `minting pow…` pause before they land. That's normal.
 
 ## What's in here
 
 ```
 src/
+├── terminal/
+│   └── main.js       ← THE APP. the Pear terminal (TUI) entry — readline feed/thread UI
 ├── backend/          shared Node/Bare backend (ops, PoW, indexer, reputation, antispam)
 │   ├── ops.js        signed append-only op schema (post, comment, vote, edit, tombstone,
 │   │                 follow, block, profile, board_create, blocklist_publish)
@@ -36,22 +91,21 @@ src/
 │   ├── swarm.js      hyperswarm + protomux announce channel for peer discovery
 │   ├── rpc.js        JSON-RPC dispatch shared by every transport
 │   └── server.js     optional Node HTTP/WS dev server
-├── terminal/
-│   └── main.js       the Pear terminal entry (readline UI)
 ├── bare/
 │   ├── harness.js    Pear/bare-kit shared backend bootstrap
-│   └── ios-entry.js  bare-kit-pear iOS entry
+│   └── ios-entry.js  bare-kit-pear iOS entry (parked)
 ├── pear/
 │   └── worker.js     Pear desktop worker (parked)
 └── relay/
     └── server.js     self-hosted hiverelay with @hyperswarm/dht-relay endpoint
 
-public/               HTML/CSS/JS for the browser/desktop UI (dev mode)
+landing/              static site for p2pbuilders.com
+public/               parked browser/desktop UI (dev mode) — not the terminal app
 ios-app/              minimal Xcode project using bare-kit-pear (parked)
 scripts/
   publish.js          publish a directory to hiverelay
   seed-pear.js        ask hiverelay to seed a pear:// key
-  probe-relays.mjs    list relays currently pinning a key
+  probe-relays.mjs    list relays currently pinning the live key
 test/                 41 tests covering every layer
 ```
 
@@ -78,11 +132,11 @@ git clone https://github.com/bigdestiny2/p2pbuilders.git
 cd p2pbuilders
 npm install
 
-# run the Node dev server (browser at http://localhost:8787)
-npm run dev
-
-# run the terminal app under standalone Bare (no Pear needed)
+# run the terminal app (TUI) under standalone Bare — no Pear needed
 ./node_modules/bare/bin/bare src/terminal/main.js
+
+# run the optional Node dev server (browser at http://localhost:8787)
+npm run dev
 
 # run the full test suite (41 tests)
 npm test
@@ -90,31 +144,42 @@ npm test
 
 ## Stage a new build to Pear
 
+Staging publishes the current working tree to a `pear://` link that anyone can `pear run`.
+
 ```
-# 1. make sure /tmp/p2pbuilders symlinks to this project (Pear chokes on paths
-#    containing spaces inside pear-electron/pre)
+# 1. symlink to a space-free path (Pear chokes on paths with spaces in
+#    pear-electron/pre).
 ln -sfn "$(pwd)" /tmp/p2pbuilders
-
-# 2. stage from the space-free path
 cd /tmp/p2pbuilders
-pear stage --no-ask dev .          # prints pear://0.<n>.<key>
 
-# 3. run it
-pear run pear://<that-key>
+# 2. generate a fresh link (once per app — reuse it for later builds)
+pear touch                                   # prints pear://<key>
+
+# 3. sync the working tree to that link
+pear stage --no-ask pear://<key> .           # prints pear://0.<n>.<key>
+
+# 4. point the unversioned link at this build, so `pear run pear://<key>`
+#    serves what you just staged
+pear release pear://<key> .
+
+# 5. run it
+pear run pear://<key>
 ```
 
-## Seed an app or user to hiverelay
+## Keep it online (seed to hiverelay)
 
 ```
-node scripts/publish.js             # publish ./public as a hyperdrive
-node scripts/seed-pear.js pear://<pear-key>
-node scripts/probe-relays.mjs       # see which relays are pinning it
+node scripts/seed-pear.js pear://<key>   # ask relays to pin the app (or any user core)
+node scripts/probe-relays.mjs            # see which relays are pinning the live key
+node scripts/publish.js                  # publish ./public as a hyperdrive
 ```
+
+`seed-pear.js` stays running so your local replica is available while relays catch up — leave it up, or Ctrl+C once `seeded on N relay(s)` prints.
 
 ## Status
 
 **Shipping now:**
-- Terminal app via `pear run pear://…`
+- Terminal app (TUI) via `pear run pear://…`
 - Full backend verified with 41 tests
 - Auto-seeding to the public hiverelay network
 
