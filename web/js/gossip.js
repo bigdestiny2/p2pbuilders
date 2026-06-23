@@ -255,6 +255,16 @@ class BridgeGossipSync {
   // users can never collide onto the same sync group.
   _myAppId () { return this.getMe() }
 
+  // Every outbox this user has ever written, persisted locally. Re-merging ALL
+  // of them on boot makes posts survive even if PearBrowser hands back a
+  // different per-app identity key on reopen (which would otherwise orphan the
+  // prior outbox and make posts "vanish" though they're still on disk).
+  _knownOutboxes () { try { return JSON.parse(localStorage.getItem('p2pb:my-outboxes') || '[]') } catch { return [] } }
+  _rememberOutbox (appId, inviteKey) {
+    const list = this._knownOutboxes()
+    if (!list.find(o => o.appId === appId)) { list.push({ appId, inviteKey }); try { localStorage.setItem('p2pb:my-outboxes', JSON.stringify(list)) } catch {} }
+  }
+
   async ready () {
     await cryptoReady()
     let key = null
@@ -267,6 +277,14 @@ class BridgeGossipSync {
       const r = await this.pear.sync.create(this._myAppId()); this._myInvite = r.inviteKey
     }
     this._peers.set(this.getMe(), { appId: this._myAppId(), inviteKey: this._myInvite, self: true })
+    this._rememberOutbox(this._myAppId(), this._myInvite)
+    // Re-join + merge EVERY outbox we've ever owned, so a changed identity key
+    // can't strand earlier posts.
+    for (const o of this._knownOutboxes()) {
+      if (this._peers.has(o.appId)) continue
+      try { await this.pear.sync.join(o.appId, o.inviteKey); this._peers.set(o.appId, { appId: o.appId, inviteKey: o.inviteKey, self: true }) } catch {}
+    }
+    try { console.log('[p2pb persist] me=' + (this.getMe() || '').slice(0, 12) + ' outbox=' + (this._myInvite || '').slice(0, 12) + ' knownOutboxes=' + this._knownOutboxes().length) } catch {}
     try {
       this._channel = await this.pear.swarm.v1.join(TOPIC, { server: true, client: true, appName: 'p2pbuilders', reason: 'Discover other p2pbuilders peers' })
       this._channel.on('peer', () => this._announce())
