@@ -191,3 +191,17 @@ node scripts/publish.js                  # publish ./public as a hyperdrive
 ## License
 
 Apache 2.0. See [LICENSE](./LICENSE).
+
+---
+
+## `web/` — browser build (PearBrowser P2P site)
+
+A full browser port of p2pbuilders now lives in [`web/`](web/) — it runs as a
+**PearBrowser P2P site** (no terminal required), reusing peerit's gossip/crypto
+engine. Same permissionless model: **proof-of-work** spam gating,
+**reputation-weighted** votes, boards, threaded comments, follow/block, and
+subscribable blocklists. See [`web/README.md`](web/README.md).
+
+- Run locally: `cd web && node dev-server.mjs` → http://localhost:8778
+- Tests: `cd web && node test/engine.mjs`
+- Live: `hyper://ac1977a75cc84b46af0af8bb559cd4ebbe10507eb0f51d863e289d09635f6d74/` (open in PearBrowser)

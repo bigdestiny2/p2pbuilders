@@ -1,0 +1,24 @@
+{
+  "id": "p2pbuilders-web",
+  "name": "p2pbuilders",
+  "description": "Permissionless peer-to-peer Hacker News for anons who build P2P — now in the browser. No servers, no accounts. Posts are proof-of-work gated and votes are reputation-weighted; boards, threaded comments, follows and subscribable blocklists replicate directly between peers over the same Holepunch gossip engine as peerit. A PearBrowser P2P site.",
+  "version": "1.0.0",
+  "author": "defidon",
+  "categories": [
+    "community",
+    "social",
+    "p2p",
+    "site"
+  ],
+  "publishedAt": "2026-06-23T00:00:00Z",
+  "type": "site",
+  "driveKey": "ac1977a75cc84b46af0af8bb559cd4ebbe10507eb0f51d863e289d09635f6d74",
+  "url": "hyper://ac1977a75cc84b46af0af8bb559cd4ebbe10507eb0f51d863e289d09635f6d74/",
+  "homepage": "hyper://ac1977a75cc84b46af0af8bb559cd4ebbe10507eb0f51d863e289d09635f6d74/",
+  "license": "MIT",
+  "platforms": [
+    "macos",
+    "windows",
+    "linux"
+  ]
+}
