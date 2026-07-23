@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Hyperswarm: find peers by topic — p2pbuilders learn</title>
+<meta name="description" content="The DHT + holepunching layer — join a 32-byte topic, get encrypted sockets to strangers.">
+<link rel="canonical" href="https://p2pbuilders.com/learn/hp-hyperswarm.html">
+<meta property="og:title" content="Hyperswarm: find peers by topic — p2pbuilders learn">
+<meta property="og:description" content="The DHT + holepunching layer — join a 32-byte topic, get encrypted sockets to strangers.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.com/learn/hp-hyperswarm.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hyperswarm: find peers by topic — p2pbuilders learn">
+<meta name="twitter:description" content="The DHT + holepunching layer — join a 32-byte topic, get encrypted sockets to strangers.">
+<meta name="twitter:image" content="https://p2pbuilders.com/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Hyperswarm: find peers by topic","description":"The DHT + holepunching layer — join a 32-byte topic, get encrypted sockets to strangers.","url":"https://p2pbuilders.com/learn/hp-hyperswarm.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.com"},"articleSection":"Holepunch walkthroughs","timeRequired":"PT7M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-23","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.com/learn/"},{"@type":"ListItem","position":3,"name":"Hyperswarm: find peers by topic","item":"https://p2pbuilders.com/learn/hp-hyperswarm.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Holepunch walkthroughs</nav>
+<article>
+<div class="meta">7 min read · part of <strong>Holepunch walkthroughs</strong> · also readable inside the app (type <code>learn hp-hyperswarm</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Hyperswarm: find peers by topic</h1>
+<p><a href="https://github.com/holepunchto/hyperswarm" target="_blank" rel="noopener noreferrer nofollow">Hyperswarm</a> answers &quot;who else<br>cares about this hash?&quot; and hands you <strong>encrypted, holepunched connections</strong><br>to each of them. It is the networking layer for the entire stack.</p>
+<pre><code>const Hyperswarm = require(&#39;hyperswarm&#39;)
+const crypto = require(&#39;hypercore-crypto&#39;)
+
+const swarm = new Hyperswarm()
+
+// A topic is any 32 bytes both sides can derive.
+const topic = crypto.hash(Buffer.from(&#39;p2pbuilders:board:v1:front&#39;))
+
+swarm.join(topic, { server: true, client: true })
+swarm.on(&#39;connection&#39;, (socket, info) =&gt; {
+  // socket is an encrypted duplex stream to a peer on the same topic.
+  socket.write(&#39;hello&#39;)
+  socket.on(&#39;data&#39;, (d) =&gt; console.log(&#39;peer says&#39;, d.toString()))
+})
+await swarm.flush()    // announced + initial lookups done</code></pre>
+<p>What you get for free:</p>
+<ul><li><strong>NAT traversal.</strong> Both peers behind home routers still connect directly in</li></ul>
+<p>  most cases — the DHT brokers the holepunch.</p>
+<ul><li><strong>Encryption + peer identity.</strong> Every connection is a Noise channel;</li></ul>
+<p>  <code>socket.remotePublicKey</code> cryptographically identifies the other end.</p>
+<ul><li><strong>Deduping.</strong> One connection per peer even when you share many topics.</li></ul>
+<h2>Usage patterns</h2>
+<ul><li><strong>Core replication:</strong> <code>swarm.on(&#39;connection&#39;, s =&gt; store.replicate(s))</code> —</li></ul>
+<p>  every core in your <a href="/learn/hp-corestore.html">Corestore</a> syncs over every<br>  socket. Hypercore&#39;s protocol multiplexes and only transfers cores both<br>  sides know.</p>
+<ul><li><strong>Custom protocols:</strong> speak your own messages over the socket (we run a</li></ul>
+<p>  protomux &quot;announce&quot; channel gossiping author pubkeys —<br>  <a href="/learn/handbook-discovery.html">How peers find each other</a>).</p>
+<ul><li><strong>Direct dial:</strong> <code>swarm.joinPeer(pubkey)</code> connects to one specific peer</li></ul>
+<p>  without a shared topic.</p>
+<p>Expect churn: connections drop, peers reappear with new addresses. Write your<br>handler so any peer can vanish at any moment and nothing breaks.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/hp-hyperdrive.html">« Hyperdrive: a filesystem on two cores</a>
+<a rel="next" href="/learn/hp-corestore.html">Corestore: many cores, one storage »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

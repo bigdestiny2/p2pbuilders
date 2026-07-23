@@ -117,6 +117,26 @@ export function renderMarkdown (src) {
       continue
     }
 
+    // table: consecutive |…| lines; an optional |---|---| line after the first
+    // row promotes that row to a header.
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      flushParagraph(para)
+      const rows = []
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+        rows.push(lines[i].trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim()))
+        i++
+      }
+      const isSep = (r) => r.every(c => /^:?-{2,}:?$/.test(c))
+      let head = null
+      let body = rows
+      if (rows.length >= 2 && isSep(rows[1])) { head = rows[0]; body = rows.slice(2) }
+      const tr = (cells, tag) => '<tr>' + cells.map(c => '<' + tag + '>' + inline(c) + '</' + tag + '>').join('') + '</tr>'
+      out.push('<table>' +
+        (head ? '<thead>' + tr(head, 'th') + '</thead>' : '') +
+        '<tbody>' + body.filter(r => !isSep(r)).map(r => tr(r, 'td')).join('') + '</tbody></table>')
+      continue
+    }
+
     // blank line ends a paragraph
     if (/^\s*$/.test(line)) { flushParagraph(para); i++; continue }
 

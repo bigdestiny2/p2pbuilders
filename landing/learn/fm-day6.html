@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Day 6: High-Performance JS Networking — p2pbuilders learn</title>
+<meta name="description" content="The event loop, buffers, backpressure, and the allocation discipline that separates a toy from a relay.">
+<link rel="canonical" href="https://p2pbuilders.com/learn/fm-day6.html">
+<meta property="og:title" content="Day 6: High-Performance JS Networking — p2pbuilders learn">
+<meta property="og:description" content="The event loop, buffers, backpressure, and the allocation discipline that separates a toy from a relay.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.com/learn/fm-day6.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Day 6: High-Performance JS Networking — p2pbuilders learn">
+<meta name="twitter:description" content="The event loop, buffers, backpressure, and the allocation discipline that separates a toy from a relay.">
+<meta name="twitter:image" content="https://p2pbuilders.com/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Day 6: High-Performance JS Networking","description":"The event loop, buffers, backpressure, and the allocation discipline that separates a toy from a relay.","url":"https://p2pbuilders.com/learn/fm-day6.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.com"},"articleSection":"The P2P Engineer's Field Manual","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-23","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.com/learn/"},{"@type":"ListItem","position":3,"name":"Day 6: High-Performance JS Networking","item":"https://p2pbuilders.com/learn/fm-day6.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › The P2P Engineer's Field Manual</nav>
+<article>
+<div class="meta">10 min read · part of <strong>The P2P Engineer's Field Manual</strong> · also readable inside the app (type <code>learn fm-day6</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Day 06: High-Performance JS Networking</h1>
+<p><em>The event loop, buffers, backpressure, and the allocation discipline that separates a toy from a relay.</em></p>
+<blockquote><p>⏱ ~90 min · theory 45 / lab 45</p></blockquote>
+<p>You can know every protocol and still write a P2P node that melts under load. Performance in Node networking is<br>mostly about three things: respecting the <strong>event loop</strong>, managing <strong>buffers</strong> without<br>drowning the garbage collector, and honoring <strong>backpressure</strong> so a fast sender can&#39;t overwhelm a slow<br>consumer. This chapter is where the relay-and-throughput intuition that interviewers probe actually lives.</p>
+<h2>6.1 The event loop is your whole performance model</h2>
+<p>Node runs your JavaScript on a <strong>single thread</strong>. I/O (sockets, files) is handed off to libuv and<br>completes asynchronously, but every callback, every <code>data</code> handler, every bit of parsing runs on that one<br>thread. The rule that follows is absolute: <strong>never block the loop</strong>. A synchronous JSON.parse of a huge<br>payload, a tight CPU loop, a synchronous crypto call on every packet — each one stalls <em>all</em> connections, not<br>just one. Throughput collapses not because the network is slow but because the loop is busy.</p>
+<ul><li>Keep per-event work small and bounded. Offload heavy CPU (large hashing, compression) to a <code>worker_thread</code> or a native addon that releases the loop.</li><li>Prefer streaming/incremental parsing over &quot;buffer the whole thing then parse.&quot;</li><li>Watch out for accidental <code>O(n²)</code>: repeated <code>Buffer.concat</code> on a growing buffer is a classic one (you&#39;ll fix it in the lab).</li></ul>
+<blockquote><p>Mental model<br>Think of the event loop as a single cashier serving every customer. The cashier is extremely fast, but if you ask<br>them to do long division by hand for one customer, the entire queue waits. Your job is to keep every interaction<br>short and push the long division elsewhere.</p></blockquote>
+<h2>6.2 Buffers and the GC tax</h2>
+<p>Every <code>Buffer</code> you allocate in a hot path is future work for the garbage collector. Under high packet<br>rates, allocation churn causes GC pauses that show up as latency spikes and jitter. The disciplines that matter:</p>
+<ul><li><strong><code>Buffer.allocUnsafe(n)</code></strong> skips zero-filling — faster when you&#39;re about to overwrite every byte anyway (e.g. you&#39;re about to copy a frame in). Use <code>Buffer.alloc</code> only when you need the zeroes. Never expose an <code>allocUnsafe</code> buffer&#39;s uninitialized tail to the wire.</li><li><strong>Reuse buffers.</strong> A pre-allocated read buffer or a small pool avoids per-message allocation. The two-pass <code>preencode/encode</code> you saw in <code>compact-encoding</code> exists precisely so the library can write into one correctly-sized buffer instead of growing and reallocating.</li><li><strong>Slice, don&#39;t copy.</strong> <code>buf.subarray(a, b)</code> returns a view sharing the same memory — no allocation. <code>Buffer.from(buf)</code> or <code>.slice()</code>-then-copy duplicates. Use views when the lifetime is safe; copy only when you must retain data past the read buffer&#39;s reuse.</li></ul>
+<blockquote><p>Holepunch note<br>This is exactly the discipline a relay like a HiveRelay node lives or dies by. A relay forwards huge numbers of<br>small frames; if each forwarded frame allocates a fresh buffer and triggers a <code>concat</code>, GC pressure caps<br>your throughput long before bandwidth does. Pre-sized read buffers, <code>subarray</code> views for forwarding, and<br>bounded per-event work are what let a single Node process push serious packet rates.</p></blockquote>
+<h2>6.3 Backpressure: the rule everyone forgets</h2>
+<p><code>socket.write(chunk)</code> returns a boolean. When it returns <code>false</code>, the kernel/stream buffer is<br>full and you must <strong>stop writing</strong> until the <code>&#39;drain&#39;</code> event fires. Ignore this and Node<br>happily queues your data in memory — unbounded — until the process balloons and dies. A fast producer feeding a slow<br>socket is the most common way a P2P node runs out of memory.</p>
+<p>The clean solutions: use <code>stream.pipe()</code> (which handles backpressure for you), or <code>pipeline()</code>,<br>or honor the <code>write</code>/<code>&#39;drain&#39;</code> contract manually. Async iterators (<code>for await...of</code><br>over a readable) also propagate backpressure naturally.</p>
+<h2>6.4 Measuring: latency vs throughput</h2>
+<p>Two different numbers people constantly conflate:</p>
+<ul><li><strong>Throughput</strong> — bytes or messages per second. Bounded by per-message CPU cost, allocation, and bandwidth.</li><li><strong>Latency</strong> — time for one message to make the trip. Bounded by round-trips, queueing, and event-loop delay.</li></ul>
+<p>You can have great throughput and terrible tail latency (big batches, long GC pauses) or low latency and poor<br>throughput (tiny unbatched writes with per-message overhead). Always measure <strong>percentiles</strong> (p50, p99),<br>never just the mean — the mean hides exactly the stalls that matter. <code>perf_hooks.monitorEventLoopDelay()</code><br>quantifies how much the loop itself is the bottleneck.</p>
+<h2>6.5 Lab — find and fix the throughput killers</h2>
+<hr>
+<h3>Goal</h3>
+<p>Measure three real performance effects: (1) the <code>Buffer.concat</code> <code>O(n²)</code> trap vs a<br>pre-sized buffer, (2) <code>allocUnsafe</code> vs <code>alloc</code> in a hot loop, and (3) backpressure on a TCP<br>socket. You&#39;ll produce numbers, not just theory.</p>
+<h3>Step 1 — the accumulating-concat trap</h3>
+<pre><code>// concat-trap.js — why naive reassembly is O(n^2)
+const { performance } = require(&#39;perf_hooks&#39;);
+const CHUNKS = 20000;
+const chunk = Buffer.allocUnsafe(64);
+
+// BAD: concat the whole growing buffer on every chunk
+let t = performance.now();
+let acc = Buffer.alloc(0);
+for (let i = 0; i &lt; CHUNKS; i++) acc = Buffer.concat([acc, chunk]);
+console.log(&#39;concat-each-time :&#39;, (performance.now() - t).toFixed(1), &#39;ms&#39;);
+
+// GOOD: collect references, concat ONCE at the end
+t = performance.now();
+const parts = [];
+for (let i = 0; i &lt; CHUNKS; i++) parts.push(chunk);
+const joined = Buffer.concat(parts);
+console.log(&#39;collect-then-join:&#39;, (performance.now() - t).toFixed(1), &#39;ms&#39;);
+
+// BEST when total size known: one allocation, copy into it
+t = performance.now();
+const dst = Buffer.allocUnsafe(CHUNKS * 64);
+for (let i = 0; i &lt; CHUNKS; i++) chunk.copy(dst, i * 64);
+console.log(&#39;presized-copy    :&#39;, (performance.now() - t).toFixed(1), &#39;ms&#39;);</code></pre>
+<pre><code>node concat-trap.js
+// concat-each-time : 3380.0 ms    &lt;- quadratic; explodes with size
+// collect-then-join:    2.3 ms     &lt;- linear
+// presized-copy    :    6.9 ms     &lt;- linear, one allocation</code></pre>
+<p>The exact numbers vary by machine, but the <em>shape</em> is the lesson: the naive version is *hundreds to<br>thousands* of times slower and gets worse as the buffer grows. This is the framing decoder from Day 4 done wrong.</p>
+<h3>Step 2 — allocUnsafe vs alloc in a hot path</h3>
+<pre><code>// alloc-bench.js
+const { performance } = require(&#39;perf_hooks&#39;);
+const N = 2_000_000, SIZE = 256;
+
+let t = performance.now();
+for (let i = 0; i &lt; N; i++) { const b = Buffer.alloc(SIZE); b[0] = 1; }
+console.log(&#39;alloc      :&#39;, (performance.now() - t).toFixed(0), &#39;ms&#39;);
+
+t = performance.now();
+for (let i = 0; i &lt; N; i++) { const b = Buffer.allocUnsafe(SIZE); b[0] = 1; }
+console.log(&#39;allocUnsafe:&#39;, (performance.now() - t).toFixed(0), &#39;ms&#39;);
+
+// BEST: one reusable buffer, no per-iteration allocation at all
+t = performance.now();
+const reusable = Buffer.allocUnsafe(SIZE);
+for (let i = 0; i &lt; N; i++) { reusable[0] = 1; }
+console.log(&#39;reused     :&#39;, (performance.now() - t).toFixed(0), &#39;ms&#39;);</code></pre>
+<p>Zero-filling (<code>alloc</code>) costs measurable time at scale, and <em>not allocating at all</em> wins biggest.<br>In a real reader you keep one read buffer and parse out of it.</p>
+<h3>Step 3 — backpressure on a real socket</h3>
+<pre><code>// backpressure.js — a server that floods, a client that reads slowly
+const net = require(&#39;net&#39;);
+
+const server = net.createServer((socket) =&gt; {
+  const payload = Buffer.allocUnsafe(64 * 1024); // 64 KB
+  let sent = 0, blocked = 0;
+
+  function pump() {
+    while (sent &lt; 2000) {
+      const ok = socket.write(payload); // returns false when buffer is full
+      sent++;
+      if (!ok) {                       // BACKPRESSURE: stop and wait for drain
+        blocked++;
+        socket.once(&#39;drain&#39;, pump);     // resume only when flushed
+        return;
+      }
+    }
+    console.log(`done: sent ${sent} chunks, paused ${blocked} times for drain`);
+    socket.end();
+  }
+  pump();
+});
+
+server.listen(8124, () =&gt; {
+  const client = net.connect(8124);
+  let received = 0;
+  client.on(&#39;data&#39;, (d) =&gt; {
+    received += d.length;
+    client.pause();                       // simulate a slow consumer
+    setTimeout(() =&gt; client.resume(), 1);
+  });
+  client.on(&#39;end&#39;, () =&gt; {
+    console.log(`client received ${(received / 1024 / 1024).toFixed(1)} MB`);
+    server.close();
+  });
+});</code></pre>
+<pre><code>node backpressure.js
+// done: sent 2000 chunks, paused 80+ times for drain
+// client received 125.0 MB</code></pre>
+<p>The &quot;paused for drain&quot; count is the system protecting itself. Delete the <code>if (!ok)</code> branch and keep<br>writing regardless: memory usage climbs without bound because Node queues everything you hand it. <em>That</em> is the<br>bug behind most &quot;my P2P node leaks memory under load&quot; reports.</p>
+<h3>Experiments</h3>
+<ul><li>In Step 1, raise <code>CHUNKS</code> to 40000 and watch the concat time roughly quadruple (4×), confirming <code>O(n²)</code> — while the other two only double.</li><li>In Step 3, log <code>socket.writableLength</code> each time <code>write</code> returns false to see the high-water mark Node is enforcing.</li><li>Add <code>const h = require(&#39;perf_hooks&#39;).monitorEventLoopDelay(); h.enable();</code> around a blocking loop and read <code>h.max</code> to quantify a stall in milliseconds.</li></ul>
+<h2>6.6 Self-check &amp; interview drill</h2>
+<ul><li>I can explain why a single blocking call hurts every connection.</li><li>I measured the <code>O(n²)</code> concat trap and the pre-sized-buffer fix.</li><li>I know when <code>allocUnsafe</code> is appropriate and its hazard.</li><li>My socket lab pauses for <code>&#39;drain&#39;</code> and I understand what breaks without it.</li></ul>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/fm-day5.html">« Day 5: Cryptographic Primitives</a>
+<a rel="next" href="/learn/fm-day7.html">Day 7: Profiling, Optimization &amp; Integration »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

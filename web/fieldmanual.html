@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The P2P Engineer's Field Manual — A 7-Day Crash Course</title>
+<style>
+:root{
+  --ink:#1a1f24;
+  --ink-soft:#3d4650;
+  --paper:#f4f1ea;
+  --paper-card:#fbfaf6;
+  --rule:#d9d2c4;
+  --accent:#b3431f;
+  --accent-2:#1f6f6b;
+  --code-bg:#15191e;
+  --code-ink:#d6dde4;
+  --code-key:#e0915f;
+  --code-str:#9ec97f;
+  --code-com:#6b7785;
+  --code-num:#79b8ff;
+  --code-fn:#e5c07b;
+  --shadow:0 1px 2px rgba(20,25,30,.08),0 8px 30px rgba(20,25,30,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 12% -5%, #efe9dc 0%, transparent 45%),
+    radial-gradient(circle at 90% 0%, #ece6d6 0%, transparent 40%),
+    var(--paper);
+  color:var(--ink);
+  font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  font-size:18px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:820px;margin:0 auto;padding:0 28px 120px}
+header.cover{
+  max-width:820px;margin:0 auto;padding:90px 28px 50px;
+}
+.kicker{
+  font-family:"SF Mono",ui-monospace,"Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:12px;letter-spacing:.32em;text-transform:uppercase;
+  color:var(--accent);font-weight:600;margin-bottom:22px;
+}
+h1.book{
+  font-size:58px;line-height:1.02;margin:0 0 18px;font-weight:700;
+  letter-spacing:-.02em;
+}
+h1.book .sub{display:block;font-size:25px;color:var(--ink-soft);font-style:italic;font-weight:400;margin-top:14px;letter-spacing:0}
+.cover p.lede{font-size:19px;color:var(--ink-soft);max-width:620px}
+.cover .meta{
+  font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+  font-size:13px;color:var(--ink-soft);margin-top:34px;padding-top:22px;
+  border-top:2px solid var(--ink);display:flex;gap:30px;flex-wrap:wrap;
+}
+.cover .meta b{color:var(--ink);font-weight:600}
+
+.toc{
+  background:var(--paper-card);border:1px solid var(--rule);border-radius:10px;
+  padding:30px 34px;margin:50px auto 0;max-width:820px;box-shadow:var(--shadow);
+}
+.toc h2{font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-2);
+  font-family:"SF Mono",ui-monospace,Menlo,monospace;margin:0 0 18px}
+.toc ol{margin:0;padding:0;list-style:none;counter-reset:tocc}
+.toc li{counter-increment:tocc;padding:11px 0;border-bottom:1px dotted var(--rule);
+  display:flex;align-items:baseline;gap:14px}
+.toc li:last-child{border-bottom:none}
+.toc li::before{content:"Day " counter(tocc);font-family:"SF Mono",Menlo,monospace;
+  font-size:11px;letter-spacing:.1em;color:var(--accent);font-weight:600;
+  min-width:54px;text-transform:uppercase}
+.toc a{color:var(--ink);text-decoration:none;font-weight:600;font-size:17px}
+.toc a:hover{color:var(--accent)}
+.toc .tt{color:var(--ink-soft);font-weight:400;font-style:italic}
+
+section.chapter{margin-top:80px;scroll-margin-top:20px}
+.chap-head{border-top:3px solid var(--ink);padding-top:18px;margin-bottom:10px}
+.chap-num{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;
+  letter-spacing:.3em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h2.chap-title{font-size:38px;line-height:1.08;margin:8px 0 6px;letter-spacing:-.015em;font-weight:700}
+.chap-sub{font-style:italic;color:var(--ink-soft);font-size:19px;margin:0 0 6px}
+.timebox{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--accent-2);
+  letter-spacing:.05em;margin-bottom:30px}
+
+h3{font-size:24px;margin:42px 0 12px;letter-spacing:-.01em;font-weight:700}
+h4{font-size:19px;margin:30px 0 8px;color:var(--accent);font-weight:700;
+   font-family:"SF Mono",ui-monospace,Menlo,monospace;letter-spacing:.01em}
+p{margin:0 0 16px}
+a{color:var(--accent)}
+strong{font-weight:700}
+em{font-style:italic}
+ul,ol{margin:0 0 18px;padding-left:26px}
+li{margin:7px 0}
+code{
+  font-family:"SF Mono",ui-monospace,"JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  font-size:.84em;background:#e8e2d4;padding:2px 6px;border-radius:5px;color:#7a3115;
+}
+pre{
+  background:var(--code-bg);color:var(--code-ink);border-radius:10px;
+  padding:20px 22px;overflow-x:auto;margin:18px 0 22px;
+  font-family:"SF Mono",ui-monospace,"JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  font-size:13.5px;line-height:1.62;box-shadow:var(--shadow);
+  border:1px solid #20262d;
+}
+pre code{background:none;padding:0;color:inherit;font-size:inherit}
+pre .c{color:var(--code-com);font-style:italic}
+pre .k{color:var(--code-key)}
+pre .s{color:var(--code-str)}
+pre .n{color:var(--code-num)}
+pre .f{color:var(--code-fn)}
+.codecap{font-family:"SF Mono",Menlo,monospace;font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--accent-2);margin:24px 0 -8px;font-weight:600}
+
+.callout{border-left:3px solid var(--accent);background:var(--paper-card);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0;font-size:16.5px;box-shadow:var(--shadow)}
+.callout .lbl{font-family:"SF Mono",Menlo,monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent);font-weight:600;display:block;margin-bottom:6px}
+.callout.teal{border-left-color:var(--accent-2)}
+.callout.teal .lbl{color:var(--accent-2)}
+
+.lab{border:2px solid var(--ink);border-radius:12px;padding:4px 26px 24px;margin:34px 0;
+  background:var(--paper-card);box-shadow:var(--shadow)}
+.lab .labtag{display:inline-block;background:var(--ink);color:var(--paper);
+  font-family:"SF Mono",Menlo,monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  padding:6px 14px;border-radius:0 0 8px 8px;margin-bottom:12px;font-weight:600}
+.lab h4{margin-top:14px}
+
+table.tbl{width:100%;border-collapse:collapse;margin:20px 0;font-size:15.5px;
+  background:var(--paper-card);border-radius:8px;overflow:hidden;box-shadow:var(--shadow)}
+table.tbl th{background:var(--ink);color:var(--paper);text-align:left;padding:11px 14px;
+  font-family:"SF Mono",Menlo,monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+table.tbl td{padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl td code{font-size:.82em}
+
+.checklist{list-style:none;padding-left:0}
+.checklist li{padding-left:30px;position:relative;margin:9px 0}
+.checklist li::before{content:"";position:absolute;left:0;top:7px;width:15px;height:15px;
+  border:2px solid var(--accent-2);border-radius:4px}
+
+.qa{margin:14px 0;padding:14px 18px;background:var(--paper-card);border:1px solid var(--rule);
+  border-radius:8px}
+.qa .q{font-weight:700;margin-bottom:6px}
+.qa .a{color:var(--ink-soft);font-size:16.5px}
+
+.footer{max-width:820px;margin:90px auto 0;padding:28px;border-top:3px solid var(--ink);
+  font-family:"SF Mono",Menlo,monospace;font-size:12.5px;color:var(--ink-soft);text-align:center}
+
+hr.sec{border:none;border-top:1px solid var(--rule);margin:36px 0}
+</style>
+</head>
+<body>
+<header class="cover">
+  <div class="kicker">A 7-Day Engineering Crash Course</div>
+  <h1 class="book">The P2P Engineer's<br>Field Manual
+    <span class="sub">Distributed networking, from Kademlia to production profiling</span>
+  </h1>
+  <p class="lede">Seven focused chapters — one per day, ninety minutes each — taking you from
+  DHT theory to hand-written binary protocols, NAT traversal, Noise handshakes, and the profiler
+  flame graphs that prove your optimizations actually worked. Every chapter ends in a runnable lab.</p>
+  <div class="meta">
+    <span><b>Format</b> 7 chapters &middot; 1&ndash;2 hrs each</span>
+    <span><b>Stack</b> Node.js &middot; Holepunch ecosystem</span>
+    <span><b>Prereq</b> working JavaScript</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>Syllabus</h2>
+  <ol>
+    <li><a href="#ch1">Distributed Hash Tables &amp; Kademlia</a> <span class="tt">— the XOR metric that organizes the swarm</span></li>
+    <li><a href="#ch2">BitTorrent &amp; Hypercore</a> <span class="tt">— swarms, incentives, and append-only logs</span></li>
+    <li><a href="#ch3">UDP, TCP/IP &amp; NAT Traversal</a> <span class="tt">— how peers behind routers actually connect</span></li>
+    <li><a href="#ch4">Binary Protocols &amp; Serialization</a> <span class="tt">— framing, varints, zero-copy formats</span></li>
+    <li><a href="#ch5">Cryptographic Primitives</a> <span class="tt">— Ed25519, Noise, AEAD, Merkle trees</span></li>
+    <li><a href="#ch6">High-Performance JS Networking</a> <span class="tt">— buffers, backpressure, the event loop</span></li>
+    <li><a href="#ch7">Profiling, Optimization &amp; Integration</a> <span class="tt">— flame graphs and the capstone build</span></li>
+  </ol>
+</nav>
+
+<div class="wrap">
+<section class="chapter" id="ch1">
+<div class="chap-head">
+  <div class="chap-num">Day 01 — Foundations</div>
+  <h2 class="chap-title">Distributed Hash Tables &amp; Kademlia</h2>
+  <p class="chap-sub">The XOR metric that quietly organizes every modern swarm.</p>
+</div>
+<div class="timebox">⏱ ~90 min &middot; theory 45 / lab 45</div>
+
+<p>Almost everything else in this manual sits on top of one idea: a <strong>distributed hash table</strong>.
+A DHT lets thousands of machines, none of which trust or even know each other, collectively behave like
+one giant key&ndash;value store — with no server, no central index, and no single point of failure. When you
+ask the network "who has the data for key <code>K</code>?", the lookup converges on the answer in roughly
+<code>log&#8322;(N)</code> hops even across millions of nodes. Kademlia is the design that made this practical,
+and it is the ancestor of the BitTorrent DHT, IPFS, Ethereum's discovery layer, and Holepunch's
+<code>hyperdht</code>.</p>
+
+<h3>1.1 The problem a DHT solves</h3>
+<p>Imagine you want to store a billion key&ndash;value pairs across a fluctuating set of peers. A naive approach
+puts everything on one coordinator — but that coordinator is a bottleneck and a kill switch. The DHT insight
+is to give every <em>node</em> and every <em>key</em> an ID drawn from the same address space (say, 256-bit
+numbers), then define a rule: <strong>a key lives on the node(s) whose ID is "closest" to the key's ID.</strong>
+Now any node can independently figure out where a key <em>should</em> be, without asking a server.</p>
+
+<p>Two questions fall out of that: (1) what does "closest" mean, and (2) how does a node that knows only a
+handful of peers <em>route</em> a query to the right corner of the network? Kademlia answers both elegantly.</p>
+
+<h3>1.2 XOR as a distance metric</h3>
+<p>Kademlia measures distance between two IDs as their bitwise <strong>XOR</strong>, interpreted as an integer:
+<code>distance(a,b) = a XOR b</code>. This looks strange the first time you see it, but it has exactly the
+properties a metric needs:</p>
+<ul>
+  <li><strong>Identity:</strong> <code>d(a,a) = 0</code> — a node is distance zero from itself.</li>
+  <li><strong>Symmetry:</strong> <code>d(a,b) = d(b,a)</code> — if I am close to you, you are equally close to me.
+  (This is the property the older Chord ring lacked, and why Kademlia routing tables self-reinforce.)</li>
+  <li><strong>Triangle inequality:</strong> <code>d(a,c) ≤ d(a,b) ⊕ d(b,c)</code> holds.</li>
+  <li><strong>Unidirectionality:</strong> for any point <code>a</code> and distance <code>Δ</code>, there is exactly
+  <em>one</em> point <code>b</code> with <code>d(a,b)=Δ</code>. This means all lookups for the same key converge
+  along the same path, which is what makes caching and routing-table convergence work.</li>
+</ul>
+
+<p>The magic is that XOR distance is <em>prefix-sensitive</em>: two IDs that share a long leading bit-prefix are
+numerically close. So "getting closer to the target" is the same as "matching more of its high bits," and that
+turns routing into a binary-search-like descent through the ID space.</p>
+
+<div class="callout teal">
+  <span class="lbl">Intuition</span>
+  Think of IDs as leaves of a binary tree. Each step of a lookup lets you correct one more bit, halving the
+  remaining search space. Halving repeatedly across <code>N</code> nodes is why lookups take <code>O(log N)</code> hops.
+</div>
+
+<h3>1.3 k-buckets: the routing table</h3>
+<p>A node can't remember every peer, so Kademlia keeps a structured, partial view. For each bit-distance band
+<code>i</code> (peers whose ID differs from mine starting at bit <code>i</code>), the node keeps a
+<strong>k-bucket</strong>: a list of up to <code>k</code> contacts (commonly <code>k = 20</code>). The result is a
+routing table that is <em>dense for nearby IDs and sparse for far ones</em> — you know your immediate neighborhood
+in fine detail and the rest of the universe only coarsely. That asymmetry is exactly what you need: to route, you
+only ever need a peer that is closer than you to the target, and the table guarantees you have one.</p>
+
+<p>k-buckets also encode a liveness policy. When a bucket is full and a new node appears, Kademlia pings the
+<em>least-recently-seen</em> contact; if it still answers, the newcomer is discarded. This deliberately favors
+long-lived nodes, because empirically a node that has been up for an hour is likely to stay up another hour. It
+also makes the table naturally resistant to flooding attacks.</p>
+
+<h3>1.4 The four RPCs</h3>
+<table class="tbl">
+  <tr><th>RPC</th><th>Purpose</th></tr>
+  <tr><td><code>PING</code></td><td>Liveness check; the heartbeat behind bucket maintenance.</td></tr>
+  <tr><td><code>STORE</code></td><td>Tell a node to hold a <code>(key, value)</code> pair.</td></tr>
+  <tr><td><code>FIND_NODE</code></td><td>"Give me the <code>k</code> closest contacts you know to this ID." The workhorse of routing.</td></tr>
+  <tr><td><code>FIND_VALUE</code></td><td>Like <code>FIND_NODE</code>, but if the node holds the value it returns it directly.</td></tr>
+</table>
+
+<h3>1.5 Iterative lookup and the &alpha; parameter</h3>
+<p>To find a target, a node starts with the closest contacts it knows and sends them <code>FIND_NODE</code> in
+parallel. Each response returns contacts that are (hopefully) closer; the node keeps the best results it has seen,
+picks the closest un-queried ones, and repeats. Lookups are <strong>iterative</strong> — the searcher drives every
+step and stays in control — rather than recursive, which improves resilience to misbehaving nodes.</p>
+<p>The concurrency factor <code>&alpha;</code> (typically 3) controls how many queries are in flight at once. It
+trades latency against redundant traffic: higher <code>&alpha;</code> tolerates slow or dead peers without stalling
+the descent, at the cost of extra packets.</p>
+
+<div class="callout">
+  <span class="lbl">Holepunch note</span>
+  <code>hyperdht</code> is Kademlia-derived but tuned for a different job: instead of storing arbitrary blobs, its
+  primary role is <em>peer discovery and connection bootstrapping</em>. It stores small mutable/immutable records
+  (signed announcements of "I am reachable at this address") and integrates UDP hole-punching directly into the
+  lookup. Same routing skeleton, different payload. Keep this contrast ready — it is a likely interview question.
+</div>
+
+<h3>1.6 Lab — build a minimal Kademlia routing core</h3>
+<div class="lab">
+  <span class="labtag">Lab 01</span>
+  <h4>Goal</h4>
+  <p>Implement XOR distance, a k-bucket routing table, and a simulated iterative lookup over an in-memory network
+  of nodes. You will <em>see</em> the <code>log N</code> convergence with your own eyes by printing each hop.</p>
+
+  <h4>Setup</h4>
+  <pre><code><span class="c"># no dependencies — pure Node</span>
+mkdir kad-lab && <span class="k">cd</span> kad-lab
+node --version   <span class="c"># v18+ recommended</span></code></pre>
+
+  <h4>Step 1 — IDs and XOR distance</h4>
+  <p>We use 16-bit IDs (a <code>Buffer</code> of 2 bytes) so the numbers stay small and printable. Real systems use
+  160 or 256 bits, but the math is identical.</p>
+  <pre><code><span class="c">// kad.js</span>
+<span class="k">const</span> ID_BITS = <span class="n">16</span>;
+<span class="k">const</span> ID_BYTES = ID_BITS / <span class="n">8</span>;
+
+<span class="k">function</span> <span class="f">randomId</span>() {
+  <span class="k">const</span> b = Buffer.<span class="f">allocUnsafe</span>(ID_BYTES);
+  <span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; ID_BYTES; i++) b[i] = (Math.<span class="f">random</span>() * <span class="n">256</span>) | <span class="n">0</span>;
+  <span class="k">return</span> b;
+}
+
+<span class="c">// XOR distance as a BigInt so it is directly comparable</span>
+<span class="k">function</span> <span class="f">distance</span>(a, b) {
+  <span class="k">let</span> d = <span class="n">0n</span>;
+  <span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; ID_BYTES; i++) d = (d &lt;&lt; <span class="n">8n</span>) | <span class="f">BigInt</span>(a[i] ^ b[i]);
+  <span class="k">return</span> d;
+}
+
+<span class="c">// index of the most-significant differing bit -> which bucket a peer belongs in</span>
+<span class="k">function</span> <span class="f">bucketIndex</span>(self, other) {
+  <span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; ID_BYTES; i++) {
+    <span class="k">const</span> x = self[i] ^ other[i];
+    <span class="k">if</span> (x !== <span class="n">0</span>) <span class="k">return</span> i * <span class="n">8</span> + Math.<span class="f">clz32</span>(x) - <span class="n">24</span>; <span class="c">// clz32 on a byte</span>
+  }
+  <span class="k">return</span> ID_BITS; <span class="c">// identical</span>
+}</code></pre>
+
+  <h4>Step 2 — the k-bucket routing table</h4>
+  <pre><code><span class="k">const</span> K = <span class="n">4</span>; <span class="c">// small k so buckets fill up visibly</span>
+
+<span class="k">class</span> <span class="f">RoutingTable</span> {
+  <span class="f">constructor</span>(selfId) {
+    <span class="k">this</span>.self = selfId;
+    <span class="k">this</span>.buckets = Array.<span class="f">from</span>({ length: ID_BITS + <span class="n">1</span> }, () =&gt; []);
+  }
+  <span class="f">add</span>(node) {
+    <span class="k">if</span> (node.id.<span class="f">equals</span>(<span class="k">this</span>.self)) <span class="k">return</span>;
+    <span class="k">const</span> b = <span class="f">bucketIndex</span>(<span class="k">this</span>.self, node.id);
+    <span class="k">const</span> bucket = <span class="k">this</span>.buckets[b];
+    <span class="k">if</span> (bucket.<span class="f">find</span>(n =&gt; n.id.<span class="f">equals</span>(node.id))) <span class="k">return</span>;
+    <span class="k">if</span> (bucket.length &lt; K) bucket.<span class="f">push</span>(node);
+    <span class="c">// (real impl: ping least-recently-seen before evicting)</span>
+  }
+  <span class="c">// return the n contacts closest to a target id</span>
+  <span class="f">closest</span>(target, n = K) {
+    <span class="k">return</span> <span class="k">this</span>.buckets.<span class="f">flat</span>()
+      .<span class="f">sort</span>((x, y) =&gt; (<span class="f">distance</span>(x.id, target) &lt; <span class="f">distance</span>(y.id, target) ? -<span class="n">1</span> : <span class="n">1</span>))
+      .<span class="f">slice</span>(<span class="n">0</span>, n);
+  }
+}</code></pre>
+
+  <h4>Step 3 — a simulated network + iterative lookup</h4>
+  <pre><code><span class="k">const</span> ALPHA = <span class="n">3</span>;
+
+<span class="k">class</span> <span class="f">Node</span> {
+  <span class="f">constructor</span>(id) { <span class="k">this</span>.id = id; <span class="k">this</span>.table = <span class="k">new</span> <span class="f">RoutingTable</span>(id); }
+  <span class="c">// the FIND_NODE RPC: just answer with my closest known contacts</span>
+  <span class="f">findNode</span>(target) { <span class="k">return</span> <span class="k">this</span>.table.<span class="f">closest</span>(target); }
+}
+
+<span class="k">function</span> <span class="f">buildNetwork</span>(count) {
+  <span class="k">const</span> nodes = Array.<span class="f">from</span>({ length: count }, () =&gt; <span class="k">new</span> <span class="f">Node</span>(<span class="f">randomId</span>()));
+  <span class="c">// seed each node's table with random acquaintances (bootstrap gossip)</span>
+  <span class="k">for</span> (<span class="k">const</span> n <span class="k">of</span> nodes)
+    <span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; <span class="n">20</span>; i++)
+      n.table.<span class="f">add</span>(nodes[(Math.<span class="f">random</span>() * count) | <span class="n">0</span>]);
+  <span class="k">return</span> nodes;
+}
+
+<span class="c">// iterative lookup driven by one starting node</span>
+<span class="k">function</span> <span class="f">lookup</span>(start, target) {
+  <span class="k">let</span> shortlist = start.table.<span class="f">closest</span>(target, ALPHA);
+  <span class="k">const</span> queried = <span class="k">new</span> <span class="f">Set</span>();
+  <span class="k">let</span> hops = <span class="n">0</span>, best = <span class="f">distance</span>(start.id, target);
+
+  <span class="k">while</span> (<span class="k">true</span>) {
+    <span class="k">const</span> batch = shortlist.<span class="f">filter</span>(n =&gt; !queried.<span class="f">has</span>(n.id.<span class="f">toString</span>(<span class="s">'hex'</span>))).<span class="f">slice</span>(<span class="n">0</span>, ALPHA);
+    <span class="k">if</span> (batch.length === <span class="n">0</span>) <span class="k">break</span>;
+    hops++;
+    <span class="k">let</span> found = [];
+    <span class="k">for</span> (<span class="k">const</span> peer <span class="k">of</span> batch) {
+      queried.<span class="f">add</span>(peer.id.<span class="f">toString</span>(<span class="s">'hex'</span>));
+      found = found.<span class="f">concat</span>(peer.<span class="f">findNode</span>(target));
+    }
+    <span class="c">// merge, dedupe, keep K closest overall</span>
+    <span class="k">const</span> seen = <span class="k">new</span> <span class="f">Map</span>();
+    <span class="k">for</span> (<span class="k">const</span> n <span class="k">of</span> shortlist.<span class="f">concat</span>(found)) seen.<span class="f">set</span>(n.id.<span class="f">toString</span>(<span class="s">'hex'</span>), n);
+    shortlist = [...seen.<span class="f">values</span>()]
+      .<span class="f">sort</span>((x, y) =&gt; (<span class="f">distance</span>(x.id, target) &lt; <span class="f">distance</span>(y.id, target) ? -<span class="n">1</span> : <span class="n">1</span>))
+      .<span class="f">slice</span>(<span class="n">0</span>, K);
+    <span class="k">const</span> closest = <span class="f">distance</span>(shortlist[<span class="n">0</span>].id, target);
+    <span class="k">if</span> (closest &gt;= best) <span class="k">break</span>; <span class="c">// no improvement -> converged</span>
+    best = closest;
+  }
+  <span class="k">return</span> { hops, winner: shortlist[<span class="n">0</span>], best };
+}
+
+<span class="c">// --- run it ---</span>
+<span class="k">const</span> N = <span class="n">5000</span>;
+<span class="k">const</span> net = <span class="f">buildNetwork</span>(N);
+<span class="k">const</span> target = <span class="f">randomId</span>();
+<span class="k">const</span> start = net[<span class="n">0</span>];
+<span class="k">const</span> r = <span class="f">lookup</span>(start, target);
+console.<span class="f">log</span>(<span class="s">`network size  : </span>${N}<span class="s">`</span>);
+console.<span class="f">log</span>(<span class="s">`target        : </span>${target.<span class="f">toString</span>(<span class="s">'hex'</span>)}<span class="s">`</span>);
+console.<span class="f">log</span>(<span class="s">`hops to find  : </span>${r.hops}<span class="s">`</span>);
+console.<span class="f">log</span>(<span class="s">`log2(N)       : </span>${Math.<span class="f">log2</span>(N).<span class="f">toFixed</span>(<span class="n">1</span>)}<span class="s">`</span>);
+console.<span class="f">log</span>(<span class="s">`closest found : </span>${r.winner.id.<span class="f">toString</span>(<span class="s">'hex'</span>)}<span class="s">`</span>);</code></pre>
+
+  <h4>Run &amp; expected output</h4>
+  <pre><code>node kad.js
+<span class="c">// network size  : 5000</span>
+<span class="c">// target        : 9c41</span>
+<span class="c">// hops to find  : 4         &lt;- compare to log2(5000) ≈ 12.3</span>
+<span class="c">// closest found : 9c2f      &lt;- shares the 9c.. prefix</span></code></pre>
+
+  <h4>Experiments to try</h4>
+  <ul>
+    <li>Sweep <code>N</code> from 100 to 100000 and plot <code>hops</code> vs <code>N</code>. The curve is logarithmic — this is the headline property of every DHT.</li>
+    <li>Set <code>ALPHA = 1</code> and re-run. Lookups still work but take more rounds and are fragile if a queried node is "dead." Then try <code>ALPHA = 8</code> and watch redundant queries climb.</li>
+    <li>Reduce the bootstrap acquaintance count from 20 to 3. Lookups degrade or fail — the routing table is too sparse. This is why real DHTs run periodic bucket-refresh lookups.</li>
+  </ul>
+</div>
+
+<h3>1.7 Self-check &amp; interview drill</h3>
+<div class="qa"><div class="q">Why XOR distance instead of, say, numeric subtraction?</div>
+<div class="a">XOR is symmetric (<code>d(a,b)=d(b,a)</code>) and unidirectional (one unique node at each distance), so all
+lookups for a key converge along the same path and routing tables mutually reinforce. Subtraction is not symmetric
+and breaks both properties.</div></div>
+<div class="qa"><div class="q">What does the <code>k</code> in k-bucket buy you?</div>
+<div class="a">Redundancy and churn-resistance. Keeping <code>k</code> contacts per band means losing one peer doesn't blind
+you to that region of the ID space, and the "ping LRU before evicting" rule biases toward stable, long-lived nodes.</div></div>
+<div class="qa"><div class="q">How does <code>hyperdht</code> differ from textbook Kademlia?</div>
+<div class="a">It uses the Kademlia routing skeleton for <em>peer discovery</em> rather than blob storage: nodes announce
+signed reachability records, and the DHT coordinates UDP hole-punching to bootstrap direct connections. Lookups
+return <em>where to reach a peer</em>, not arbitrary stored values.</div></div>
+
+<ul class="checklist">
+  <li>I can define XOR distance and name its four metric properties.</li>
+  <li>I can explain what a k-bucket stores and why eviction favors old nodes.</li>
+  <li>I can walk through an iterative lookup and the role of <code>&alpha;</code>.</li>
+  <li>My lab prints hop counts that grow logarithmically with network size.</li>
+</ul>
+</section>
+<section class="chapter" id="ch2">
+<div class="chap-head">
+  <div class="chap-num">Day 02 — Swarms &amp; Logs</div>
+  <h2 class="chap-title">BitTorrent &amp; Hypercore</h2>
+  <p class="chap-sub">Two ways to move data with no server: a static swarm and a signed, append-only log.</p>
+</div>
+<div class="timebox">⏱ ~90 min &middot; theory 50 / lab 40</div>
+
+<p>Yesterday's DHT tells peers <em>how to find each other</em>. Today is about what they do once connected:
+<em>move data efficiently and verifiably</em>. BitTorrent solved this for static files in 2001 with a beautifully
+pragmatic incentive design. Hypercore — the core of the Holepunch stack — solved a harder version: a single-writer,
+append-only log that any peer can replicate and cryptographically verify block-by-block. Understanding the contrast
+between them is the fastest way to sound fluent about P2P data transfer.</p>
+
+<h3>2.1 BitTorrent: the swarm model</h3>
+<p>A torrent splits a file into fixed-size <strong>pieces</strong> (typically 256&nbsp;KB&ndash;1&nbsp;MB), and the
+<code>.torrent</code> metadata (or magnet link) carries a SHA-1/SHA-256 hash of every piece. That hash list is the
+trust anchor: a peer can verify any piece it receives against the expected hash and reject corrupt or malicious data
+without trusting the sender. Peers swap pieces until everyone has the whole file.</p>
+
+<h4>Piece selection: rarest-first</h4>
+<p>If every peer downloaded pieces in order, the first pieces would be everywhere and the last pieces would be
+scarce — and if the only seed left before sharing a rare piece, the file would be unrecoverable. BitTorrent instead
+prefers the <strong>rarest piece first</strong>: each peer tracks how many of its neighbors have each piece and
+fetches the least-replicated ones. This spreads scarcity risk and keeps the swarm healthy as seeds come and go. A
+small exception ("random first piece") bootstraps a brand-new peer quickly so it has something to trade.</p>
+
+<h4>Choking: tit-for-tat incentives</h4>
+<p>BitTorrent's real innovation is social, not technical. Each peer <strong>chokes</strong> (refuses to upload to)
+most of its neighbors and <strong>unchokes</strong> only a few — preferentially those who upload to <em>it</em> the
+fastest. This tit-for-tat reciprocation rewards contributors and starves freeloaders. Periodically a peer does an
+<strong>optimistic unchoke</strong> of a random neighbor, to discover better partners and to give newcomers (who have
+nothing to offer yet) a foot in the door.</p>
+
+<table class="tbl">
+  <tr><th>Mechanism</th><th>What it prevents</th></tr>
+  <tr><td>Per-piece hashes</td><td>Corrupt / malicious data acceptance</td></tr>
+  <tr><td>Rarest-first</td><td>Piece scarcity &amp; unrecoverable swarms</td></tr>
+  <tr><td>Tit-for-tat choking</td><td>Freeloading (download without upload)</td></tr>
+  <tr><td>Optimistic unchoke</td><td>Newcomer starvation &amp; local optima</td></tr>
+  <tr><td>BitTorrent DHT (BEP&nbsp;5) + PEX</td><td>Dependence on a central tracker</td></tr>
+</table>
+
+<p>The <strong>bitfield</strong> message — sent on connection — is how a peer advertises which pieces it already has,
+as a compact bit array. <code>have</code> messages then incrementally announce new pieces. The <strong>BitTorrent
+DHT</strong> (a Kademlia network keyed by infohash) and <strong>PEX</strong> (peer exchange) let swarms operate with
+no tracker at all — this is exactly the DHT material from Day 1 applied in production.</p>
+
+<h3>2.2 Hypercore: the append-only log</h3>
+<p>BitTorrent distributes a <em>fixed, known-in-advance</em> file. But many applications need a <em>growing</em>
+data feed — a chat history, a database changelog, a file that gets revised. Hypercore is the answer: a
+<strong>secure, append-only log</strong> owned by a single keypair. Only the holder of the secret key can append;
+anyone with the public key (which <em>is</em> the feed's address) can read and verify.</p>
+
+<h4>The Merkle tree over blocks</h4>
+<p>Each appended block is hashed (BLAKE2b), and those hashes form a <strong>Merkle tree</strong>. The signed root
+commits to the entire log. The payoff: a peer can request block <code>i</code> alone and receive it plus a small set
+of sibling hashes (a Merkle proof) that verify it against the signed root — <em>without downloading the rest of the
+log</em>. This is what makes random access and partial replication trustworthy. It is the same idea as BitTorrent's
+piece hashes, generalized into a tree so proofs stay <code>O(log n)</code> and the structure can grow.</p>
+
+<div class="callout teal">
+  <span class="lbl">Why a tree, not a flat list</span>
+  A flat hash list (BitTorrent) is fine when the piece count is fixed and known. A Merkle tree lets the dataset
+  <em>grow without bound</em> while keeping verification proofs logarithmic and letting the writer publish a single
+  signed root that commits to all of history.
+</div>
+
+<h4>Single-writer, many-reader</h4>
+<p>The keypair is the heart of the model. The <strong>public key is the discovery key / address</strong>; the secret
+key authorizes appends. Replication is a duplex stream: two peers exchange what blocks they have and want, request
+ranges, and verify every block against the Merkle root as it arrives. Higher layers in the Holepunch stack
+(<code>hyperbee</code> for key&ndash;value/B-tree, <code>hyperdrive</code> for filesystems, <code>autobase</code> for
+multi-writer) are all built on this one primitive.</p>
+
+<table class="tbl">
+  <tr><th></th><th>BitTorrent</th><th>Hypercore</th></tr>
+  <tr><td>Data shape</td><td>Static file, fixed pieces</td><td>Append-only growing log</td></tr>
+  <tr><td>Trust anchor</td><td>Flat list of piece hashes</td><td>Signed Merkle root + keypair</td></tr>
+  <tr><td>Writers</td><td>Whoever seeds (content-addressed)</td><td>Exactly one (key-addressed)</td></tr>
+  <tr><td>Mutability</td><td>Immutable</td><td>Append (history preserved)</td></tr>
+  <tr><td>Verification</td><td>Per-piece hash check</td><td>Per-block Merkle proof</td></tr>
+</table>
+
+<h3>2.3 Lab — append-only log with Merkle verification</h3>
+<div class="lab">
+  <span class="labtag">Lab 02</span>
+  <h4>Goal</h4>
+  <p>Build a tiny append-only log that produces a Merkle root and lets a "reader" verify a single block with a proof —
+  the conceptual core of Hypercore — using only Node's built-in <code>crypto</code>. Then run real Hypercore replication
+  between two instances.</p>
+
+  <h4>Part A — Merkle log from scratch (no dependencies)</h4>
+  <pre><code><span class="c">// merkle-log.js</span>
+<span class="k">const</span> crypto = <span class="f">require</span>(<span class="s">'crypto'</span>);
+<span class="k">const</span> <span class="f">H</span> = (buf) =&gt; crypto.<span class="f">createHash</span>(<span class="s">'sha256'</span>).<span class="f">update</span>(buf).<span class="f">digest</span>();
+
+<span class="k">class</span> <span class="f">MerkleLog</span> {
+  <span class="f">constructor</span>() { <span class="k">this</span>.blocks = []; <span class="k">this</span>.leaves = []; }
+
+  <span class="f">append</span>(data) {
+    <span class="k">const</span> buf = Buffer.<span class="f">isBuffer</span>(data) ? data : Buffer.<span class="f">from</span>(data);
+    <span class="k">this</span>.blocks.<span class="f">push</span>(buf);
+    <span class="k">this</span>.leaves.<span class="f">push</span>(<span class="f">H</span>(buf));
+    <span class="k">return</span> <span class="k">this</span>.blocks.length - <span class="n">1</span>; <span class="c">// index</span>
+  }
+
+  <span class="c">// build the tree bottom-up; return the layered hash arrays</span>
+  <span class="f">tree</span>() {
+    <span class="k">let</span> layer = <span class="k">this</span>.leaves.<span class="f">slice</span>();
+    <span class="k">const</span> layers = [layer];
+    <span class="k">while</span> (layer.length &gt; <span class="n">1</span>) {
+      <span class="k">const</span> next = [];
+      <span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; layer.length; i += <span class="n">2</span>) {
+        <span class="k">const</span> left = layer[i];
+        <span class="k">const</span> right = layer[i + <span class="n">1</span>] || left; <span class="c">// duplicate last if odd</span>
+        next.<span class="f">push</span>(<span class="f">H</span>(Buffer.<span class="f">concat</span>([left, right])));
+      }
+      layers.<span class="f">push</span>(next);
+      layer = next;
+    }
+    <span class="k">return</span> layers;
+  }
+
+  <span class="f">root</span>() { <span class="k">const</span> l = <span class="k">this</span>.<span class="f">tree</span>(); <span class="k">return</span> l[l.length - <span class="n">1</span>][<span class="n">0</span>]; }
+
+  <span class="c">// proof = sibling hash at each level needed to recompute the root</span>
+  <span class="f">proof</span>(index) {
+    <span class="k">const</span> layers = <span class="k">this</span>.<span class="f">tree</span>();
+    <span class="k">const</span> path = [];
+    <span class="k">let</span> idx = index;
+    <span class="k">for</span> (<span class="k">let</span> lvl = <span class="n">0</span>; lvl &lt; layers.length - <span class="n">1</span>; lvl++) {
+      <span class="k">const</span> isRight = idx % <span class="n">2</span> === <span class="n">1</span>;
+      <span class="k">const</span> sibling = isRight ? idx - <span class="n">1</span> : idx + <span class="n">1</span>;
+      <span class="k">const</span> layer = layers[lvl];
+      path.<span class="f">push</span>({ hash: (layer[sibling] || layer[idx]), isRight });
+      idx = idx &gt;&gt; <span class="n">1</span>;
+    }
+    <span class="k">return</span> path;
+  }
+}
+
+<span class="c">// a reader who has ONLY the trusted root verifies one block</span>
+<span class="k">function</span> <span class="f">verify</span>(block, index, proof, trustedRoot) {
+  <span class="k">let</span> h = <span class="f">H</span>(block);
+  <span class="k">for</span> (<span class="k">const</span> step <span class="k">of</span> proof) {
+    h = step.isRight
+      ? <span class="f">H</span>(Buffer.<span class="f">concat</span>([step.hash, h]))   <span class="c">// our node was on the right</span>
+      : <span class="f">H</span>(Buffer.<span class="f">concat</span>([h, step.hash]));
+  }
+  <span class="k">return</span> h.<span class="f">equals</span>(trustedRoot);
+}
+
+<span class="c">// --- demo ---</span>
+<span class="k">const</span> log = <span class="k">new</span> <span class="f">MerkleLog</span>();
+[<span class="s">'genesis'</span>, <span class="s">'block-1'</span>, <span class="s">'block-2'</span>, <span class="s">'block-3'</span>, <span class="s">'block-4'</span>].<span class="f">forEach</span>(d =&gt; log.<span class="f">append</span>(d));
+<span class="k">const</span> root = log.<span class="f">root</span>();
+
+<span class="k">const</span> i = <span class="n">3</span>;
+<span class="k">const</span> ok = <span class="f">verify</span>(log.blocks[i], i, log.<span class="f">proof</span>(i), root);
+console.<span class="f">log</span>(<span class="s">'root      :'</span>, root.<span class="f">toString</span>(<span class="s">'hex'</span>).<span class="f">slice</span>(<span class="n">0</span>, <span class="n">16</span>), <span class="s">'…'</span>);
+console.<span class="f">log</span>(<span class="s">'verify #3 :'</span>, ok);
+
+<span class="c">// tamper test: flip the block, proof must fail</span>
+<span class="k">const</span> bad = Buffer.<span class="f">from</span>(<span class="s">'block-3-EVIL'</span>);
+console.<span class="f">log</span>(<span class="s">'tampered  :'</span>, <span class="f">verify</span>(bad, i, log.<span class="f">proof</span>(i), root));</code></pre>
+
+  <h4>Expected output</h4>
+  <pre><code>node merkle-log.js
+<span class="c">// root      : 2f6a... …</span>
+<span class="c">// verify #3 : true</span>
+<span class="c">// tampered  : false   &lt;- the Merkle proof rejects altered data</span></code></pre>
+
+  <h4>Part B — the real thing: Hypercore replication</h4>
+  <p>Now see it in production form. Modern Hypercore (v11+) is managed through a <code>Corestore</code> backed by a
+  storage path; we replicate a log from a writer store to a key-only reader store over piped streams (the same API
+  works over a real socket).</p>
+  <pre><code>npm init -y
+npm install hypercore corestore</code></pre>
+  <pre><code><span class="c">// hc.js</span>
+<span class="k">const</span> Corestore = <span class="f">require</span>(<span class="s">'corestore'</span>);
+<span class="k">const</span> os = <span class="f">require</span>(<span class="s">'os'</span>), path = <span class="f">require</span>(<span class="s">'path'</span>), fs = <span class="f">require</span>(<span class="s">'fs'</span>);
+
+<span class="k">async</span> <span class="k">function</span> <span class="f">main</span>() {
+  <span class="c">// two independent stores on disk (Hypercore 11+ requires a storage dir)</span>
+  <span class="k">const</span> dirA = fs.<span class="f">mkdtempSync</span>(path.<span class="f">join</span>(os.<span class="f">tmpdir</span>(), <span class="s">'hc-a-'</span>));
+  <span class="k">const</span> dirB = fs.<span class="f">mkdtempSync</span>(path.<span class="f">join</span>(os.<span class="f">tmpdir</span>(), <span class="s">'hc-b-'</span>));
+
+  <span class="c">// writer core</span>
+  <span class="k">const</span> store = <span class="k">new</span> <span class="f">Corestore</span>(dirA);
+  <span class="k">const</span> writer = store.<span class="f">get</span>({ name: <span class="s">'log'</span> });
+  <span class="k">await</span> writer.<span class="f">ready</span>();
+  <span class="k">await</span> writer.<span class="f">append</span>([Buffer.<span class="f">from</span>(<span class="s">'hello'</span>), Buffer.<span class="f">from</span>(<span class="s">'p2p'</span>), Buffer.<span class="f">from</span>(<span class="s">'world'</span>)]);
+  console.<span class="f">log</span>(<span class="s">'writer length:'</span>, writer.length,
+              <span class="s">'key:'</span>, writer.key.<span class="f">toString</span>(<span class="s">'hex'</span>).<span class="f">slice</span>(<span class="n">0</span>, <span class="n">12</span>));
+
+  <span class="c">// reader store: opens the core by PUBLIC KEY only — it has no data yet</span>
+  <span class="k">const</span> store2 = <span class="k">new</span> <span class="f">Corestore</span>(dirB);
+  <span class="k">const</span> reader = store2.<span class="f">get</span>({ key: writer.key });
+  <span class="k">await</span> reader.<span class="f">ready</span>();
+
+  <span class="c">// pipe the two replication streams together (stand-in for a socket)</span>
+  <span class="k">const</span> s1 = store.<span class="f">replicate</span>(<span class="k">true</span>);
+  <span class="k">const</span> s2 = store2.<span class="f">replicate</span>(<span class="k">false</span>);
+  s1.<span class="f">pipe</span>(s2).<span class="f">pipe</span>(s1);
+
+  <span class="c">// reader fetches block 2 — verified against the signed root automatically</span>
+  <span class="k">const</span> block = <span class="k">await</span> reader.<span class="f">get</span>(<span class="n">2</span>);
+  console.<span class="f">log</span>(<span class="s">'reader got block 2:'</span>, block.<span class="f">toString</span>()); <span class="c">// "world"</span>
+  process.<span class="f">exit</span>(<span class="n">0</span>);
+}
+<span class="f">main</span>();</code></pre>
+
+  <h4>Experiments</h4>
+  <ul>
+    <li>In Part A, append 1000 blocks and confirm proof length grows like <code>log&#8322;(n)</code>, not <code>n</code>. That logarithmic proof size is the whole point.</li>
+    <li>In Part B, call <code>reader.get(0)</code> before the writer appends (start the reader first), then append — observe that <code>get</code> resolves once the block arrives. Hypercore <code>get</code> means "wait until available."</li>
+    <li>Inspect <code>reader.length</code> vs <code>reader.contiguousLength</code> to see the difference between "known to exist" and "actually downloaded."</li>
+  </ul>
+</div>
+
+<h3>2.4 Self-check &amp; interview drill</h3>
+<div class="qa"><div class="q">Why rarest-first instead of sequential download?</div>
+<div class="a">It maximizes piece diversity in the swarm so the file stays recoverable when seeds leave, and it prevents
+the "last piece" bottleneck. Sequential only makes sense for streaming use cases.</div></div>
+<div class="qa"><div class="q">Contrast BitTorrent's trust model with Hypercore's.</div>
+<div class="a">BitTorrent is <em>content-addressed</em>: trust comes from a fixed list of piece hashes for an immutable file,
+anyone can seed. Hypercore is <em>key-addressed</em>: a single keypair authorizes appends, readers verify each block
+against a signed Merkle root, and the log can grow over time.</div></div>
+<div class="qa"><div class="q">What makes a Merkle tree better than a flat hash list here?</div>
+<div class="a">It supports an unbounded, growing dataset with <code>O(log n)</code> verification proofs and a single signed
+root committing to all history — exactly what an append-only log needs.</div></div>
+
+<ul class="checklist">
+  <li>I can explain rarest-first and tit-for-tat choking and what each prevents.</li>
+  <li>I can describe how a Merkle proof verifies one block against a signed root.</li>
+  <li>My from-scratch Merkle log verifies good blocks and rejects tampered ones.</li>
+  <li>I replicated a real Hypercore between a writer and a key-only reader.</li>
+</ul>
+</section>
+<section class="chapter" id="ch3">
+<div class="chap-head">
+  <div class="chap-num">Day 03 — The Wire</div>
+  <h2 class="chap-title">UDP, TCP/IP &amp; NAT Traversal</h2>
+  <p class="chap-sub">How two machines behind home routers manage to talk directly — the hardest, most-tested topic on the list.</p>
+</div>
+<div class="timebox">⏱ ~2 hrs &middot; theory 60 / lab 60</div>
+
+<p>This is the chapter most likely to expose gaps in an interview, because it's where networking theory meets ugly
+real-world reality. The internet was designed for every machine to have a public address; instead, billions of
+devices hide behind <strong>NAT</strong> (Network Address Translation). P2P only works if peers can punch through
+that. By the end of today you will have two UDP "peers" establishing a direct connection through a simulated
+rendezvous server — the exact dance <code>hyperdht</code> performs.</p>
+
+<h3>3.1 TCP vs UDP — pick your tradeoff</h3>
+<table class="tbl">
+  <tr><th></th><th>TCP</th><th>UDP</th></tr>
+  <tr><td>Connection</td><td>Handshake, stateful</td><td>Connectionless, fire-and-forget</td></tr>
+  <tr><td>Delivery</td><td>Reliable, ordered, retransmitted</td><td>Best-effort; may drop/reorder/dup</td></tr>
+  <tr><td>Flow/congestion control</td><td>Built in</td><td>You build it (or don't)</td></tr>
+  <tr><td>Head-of-line blocking</td><td>Yes — one lost segment stalls the stream</td><td>No — packets are independent</td></tr>
+  <tr><td>Overhead</td><td>20-byte header, ACK traffic</td><td>8-byte header</td></tr>
+  <tr><td>NAT traversal</td><td>Hard (stateful, sequence numbers)</td><td>Easier (stateless datagrams)</td></tr>
+</table>
+
+<p>P2P systems lean heavily on <strong>UDP</strong> for two reasons. First, NAT hole-punching is far more reliable
+with stateless datagrams than with TCP's handshake-and-sequence machinery. Second, head-of-line blocking: TCP
+guarantees order, so a single lost packet stalls <em>everything</em> behind it — fatal for real-time or multiplexed
+streams. This is exactly why QUIC (and HTTP/3) was built on UDP. The tradeoff is that you must implement whatever
+reliability you actually need yourself, on top of UDP.</p>
+
+<div class="callout teal">
+  <span class="lbl">The mental model</span>
+  TCP is a phone call: connection established, ordered conversation, you notice if the line drops. UDP is postcards:
+  cheap, independent, might arrive out of order or not at all — but you can drop one in any mailbox without setup.
+</div>
+
+<h3>3.2 What NAT actually does</h3>
+<p>Your router owns one public IP. Every device behind it has a private IP (<code>192.168.x.x</code>). When an inside
+device sends a packet out, the router rewrites the source <code>(private IP : port)</code> to
+<code>(public IP : some external port)</code> and records the mapping in a translation table. Replies to that
+external port get rewritten back and forwarded inside. The problem for P2P: an <em>unsolicited</em> inbound packet
+from a stranger has no table entry, so the router drops it. Two peers behind NATs each expect the other to "call
+first" — a deadlock.</p>
+
+<h4>The four NAT behaviors</h4>
+<table class="tbl">
+  <tr><th>Type</th><th>Mapping rule</th><th>Punchable?</th></tr>
+  <tr><td>Full-cone</td><td>One external port per internal socket; <em>anyone</em> can use it</td><td>Easy</td></tr>
+  <tr><td>Restricted-cone</td><td>Same port, but only hosts you've sent to may reply</td><td>Yes</td></tr>
+  <tr><td>Port-restricted</td><td>Only the exact host:port you contacted may reply</td><td>Yes (most common case)</td></tr>
+  <tr><td>Symmetric</td><td>A <em>new</em> external port per destination — mapping is unpredictable</td><td>Hard / often needs relay</td></tr>
+</table>
+
+<p>The killer is <strong>symmetric NAT</strong>: because it allocates a different external port for every
+destination, the port a peer learns via the rendezvous server is <em>not</em> the port that will be used to reach the
+other peer. Hole-punching relies on predicting the external mapping, and symmetric NAT breaks that prediction. This
+is the single most important NAT fact to be able to state crisply.</p>
+
+<h3>3.3 UDP hole punching, step by step</h3>
+<p>Both peers can make <em>outbound</em> connections; neither can receive <em>unsolicited</em> inbound. The trick is
+to use a mutually reachable <strong>rendezvous (signaling) server</strong> to learn each other's public mappings,
+then both fire packets at each other <em>simultaneously</em>. Each outbound packet opens a hole in its own NAT; when
+the other peer's packet arrives, a matching table entry already exists, so it's allowed through.</p>
+
+<ol>
+  <li>Peer&nbsp;A and Peer&nbsp;B each send a packet to the rendezvous server. The server observes their public
+  <code>(IP:port)</code> mappings (this is what STUN does).</li>
+  <li>The server tells A about B's public mapping, and B about A's.</li>
+  <li>A and B both start sending UDP packets <em>directly</em> to each other's public mapping. The first packets may
+  be dropped (no hole yet), but each one punches an outbound hole.</li>
+  <li>Once both holes exist, packets flow directly — the server is no longer involved.</li>
+</ol>
+
+<h4>STUN, TURN, ICE — the standard stack</h4>
+<ul>
+  <li><strong>STUN</strong>: a server that tells you your own public mapping ("what does the outside world see me as?"). Cheap, the basis of step 1.</li>
+  <li><strong>TURN</strong>: a relay that forwards traffic between peers when direct punching fails (e.g. symmetric NAT on both ends). Reliable but costs bandwidth — it's the fallback, not the goal.</li>
+  <li><strong>ICE</strong>: the algorithm that gathers all candidate addresses (local, STUN-derived, TURN-relayed), tries them in priority order, and picks the best working pair. WebRTC uses ICE.</li>
+</ul>
+
+<div class="callout">
+  <span class="lbl">Holepunch note</span>
+  <code>hyperdht</code> rolls its own version of this. The DHT itself <em>is</em> the rendezvous layer: peers announce
+  on a topic, the DHT coordinates the simultaneous-open, and a technique sometimes called "UDX" provides a
+  reliable-stream abstraction over UDP afterward. When you connect via <code>hyperswarm</code>, this whole sequence
+  happens under the hood. Being able to say "the DHT replaces the STUN/signaling server" is a strong interview answer.
+</div>
+
+<h3>3.4 Lab — simulate UDP hole punching locally</h3>
+<div class="lab">
+  <span class="labtag">Lab 03</span>
+  <h4>Goal</h4>
+  <p>Build a rendezvous server and two peers using Node's <code>dgram</code> (UDP) module. The server introduces the
+  peers by their observed addresses; the peers then exchange packets <em>directly</em>. Running on localhost there's
+  no real NAT, but the <em>protocol logic</em> — observe address, exchange, simultaneous send — is identical to the
+  real thing.</p>
+
+  <h4>Step 1 — the rendezvous server</h4>
+  <pre><code><span class="c">// rendezvous.js — learns each peer's public address and introduces them</span>
+<span class="k">const</span> dgram = <span class="f">require</span>(<span class="s">'dgram'</span>);
+<span class="k">const</span> server = dgram.<span class="f">createSocket</span>(<span class="s">'udp4'</span>);
+<span class="k">const</span> peers = {};
+
+server.<span class="f">on</span>(<span class="s">'message'</span>, (msg, rinfo) =&gt; {
+  <span class="k">const</span> { name } = JSON.<span class="f">parse</span>(msg);
+  <span class="c">// rinfo is the address the SERVER sees — i.e. the public mapping (STUN)</span>
+  peers[name] = { address: rinfo.address, port: rinfo.port };
+  console.<span class="f">log</span>(<span class="s">`registered </span>${name}<span class="s"> @ </span>${rinfo.address}<span class="s">:</span>${rinfo.port}<span class="s">`</span>);
+
+  <span class="c">// once both peers are known, introduce them to each other</span>
+  <span class="k">const</span> names = Object.<span class="f">keys</span>(peers);
+  <span class="k">if</span> (names.length === <span class="n">2</span>) {
+    <span class="k">const</span> [a, b] = names;
+    <span class="f">introduce</span>(a, b); <span class="f">introduce</span>(b, a);
+  }
+});
+
+<span class="k">function</span> <span class="f">introduce</span>(to, about) {
+  <span class="k">const</span> payload = Buffer.<span class="f">from</span>(JSON.<span class="f">stringify</span>({ peer: about, addr: peers[about] }));
+  server.<span class="f">send</span>(payload, peers[to].port, peers[to].address);
+}
+
+server.<span class="f">bind</span>(<span class="n">9000</span>, () =&gt; console.<span class="f">log</span>(<span class="s">'rendezvous on :9000'</span>));</code></pre>
+
+  <h4>Step 2 — a peer</h4>
+  <pre><code><span class="c">// peer.js — usage: node peer.js &lt;myName&gt;</span>
+<span class="k">const</span> dgram = <span class="f">require</span>(<span class="s">'dgram'</span>);
+<span class="k">const</span> myName = process.argv[<span class="n">2</span>] || <span class="s">'peerA'</span>;
+<span class="k">const</span> sock = dgram.<span class="f">createSocket</span>(<span class="s">'udp4'</span>);
+
+<span class="k">const</span> RDV = { port: <span class="n">9000</span>, host: <span class="s">'127.0.0.1'</span> };
+<span class="k">let</span> partner = <span class="k">null</span>;
+<span class="k">let</span> connected = <span class="k">false</span>;
+
+sock.<span class="f">on</span>(<span class="s">'message'</span>, (msg, rinfo) =&gt; {
+  <span class="k">let</span> data; <span class="k">try</span> { data = JSON.<span class="f">parse</span>(msg); } <span class="k">catch</span> { data = { raw: msg.<span class="f">toString</span>() }; }
+
+  <span class="c">// (a) introduction from the rendezvous server</span>
+  <span class="k">if</span> (data.addr) {
+    partner = data.addr;
+    console.<span class="f">log</span>(<span class="s">`got partner </span>${data.peer}<span class="s"> @ </span>${partner.address}<span class="s">:</span>${partner.port}<span class="s">`</span>);
+    <span class="f">startPunching</span>();
+    <span class="k">return</span>;
+  }
+  <span class="c">// (b) a direct packet from the partner — the hole is open!</span>
+  <span class="k">if</span> (data.hello) {
+    <span class="k">if</span> (!connected) {
+      connected = <span class="k">true</span>;
+      console.<span class="f">log</span>(<span class="s">`✅ DIRECT connection established with </span>${data.hello}<span class="s">`</span>);
+    }
+    <span class="k">return</span>;
+  }
+});
+
+<span class="c">// punch: fire packets straight at the partner's public mapping repeatedly</span>
+<span class="k">function</span> <span class="f">startPunching</span>() {
+  <span class="k">const</span> timer = <span class="f">setInterval</span>(() =&gt; {
+    <span class="k">if</span> (connected) <span class="k">return</span> <span class="f">clearInterval</span>(timer);
+    <span class="k">const</span> pkt = Buffer.<span class="f">from</span>(JSON.<span class="f">stringify</span>({ hello: myName }));
+    sock.<span class="f">send</span>(pkt, partner.port, partner.address); <span class="c">// opens our hole + may pass theirs</span>
+  }, <span class="n">200</span>);
+}
+
+<span class="c">// register with the rendezvous server on startup</span>
+sock.<span class="f">send</span>(Buffer.<span class="f">from</span>(JSON.<span class="f">stringify</span>({ name: myName })), RDV.port, RDV.host);
+console.<span class="f">log</span>(<span class="s">`</span>${myName}<span class="s"> registering…`</span>);</code></pre>
+
+  <h4>Run it (three terminals)</h4>
+  <pre><code><span class="c"># terminal 1</span>
+node rendezvous.js
+<span class="c"># terminal 2</span>
+node peer.js peerA
+<span class="c"># terminal 3</span>
+node peer.js peerB</code></pre>
+  <pre><code><span class="c"># peerA output:</span>
+<span class="c"># peerA registering…</span>
+<span class="c"># got partner peerB @ 127.0.0.1:53412</span>
+<span class="c"># ✅ DIRECT connection established with peerB</span></code></pre>
+
+  <h4>What just happened (and what's different on real NAT)</h4>
+  <ul>
+    <li>The server learned each peer's address <em>as it observed it</em> — that's the STUN principle. On real NAT this is the public mapping, not the private LAN address.</li>
+    <li>Both peers fired at each other simultaneously; the repeated sends model the "first packets may be dropped while the hole opens" reality.</li>
+    <li>Once connected, the server is never used again — true direct P2P.</li>
+    <li>On <strong>symmetric NAT</strong>, the port the server observed would <em>not</em> match the port used peer-to-peer, so the punch fails and you'd fall back to a TURN-style relay. Try simulating this by having a peer send its punch packets from a <em>different</em> socket than the one it registered with — the introduction address no longer matches and the connection never forms.</li>
+  </ul>
+</div>
+
+<h3>3.5 Self-check &amp; interview drill</h3>
+<div class="qa"><div class="q">Walk me through what happens when two peers behind NATs connect.</div>
+<div class="a">Both contact a mutually reachable rendezvous/STUN server, which observes and reports each peer's public
+<code>IP:port</code> mapping. Both peers then send UDP packets directly to each other's mapping at the same time;
+each outbound packet opens a hole in its own NAT, so the incoming packet finds a matching table entry and passes.
+After that they talk directly. If both are behind symmetric NAT, punching fails and traffic falls back to a TURN relay.</div></div>
+<div class="qa"><div class="q">Why does P2P prefer UDP over TCP?</div>
+<div class="a">Stateless datagrams make hole-punching far more reliable, and UDP avoids TCP head-of-line blocking where one
+lost packet stalls the whole stream. The cost is implementing your own reliability/ordering when you need it — which
+is what QUIC and Holepunch's UDX do.</div></div>
+<div class="qa"><div class="q">Why specifically does symmetric NAT break hole punching?</div>
+<div class="a">It assigns a new, unpredictable external port per destination. The mapping the STUN server saw applies only to
+traffic toward the server, so the peer-to-peer port differs and can't be predicted — defeating the punch.</div></div>
+
+<ul class="checklist">
+  <li>I can name the four NAT types and which one defeats hole punching.</li>
+  <li>I can explain the rendezvous → observe → simultaneous-send sequence.</li>
+  <li>I can define STUN, TURN, and ICE and how <code>hyperdht</code> replaces the signaling server.</li>
+  <li>My two UDP peers established a direct connection through a rendezvous server.</li>
+</ul>
+</section>
+<section class="chapter" id="ch4">
+<div class="chap-head">
+  <div class="chap-num">Day 04 — On the Wire, Compactly</div>
+  <h2 class="chap-title">Binary Protocols &amp; Serialization</h2>
+  <p class="chap-sub">Why every serious P2P system hand-rolls its bytes — framing, varints, and zero-copy formats.</p>
+</div>
+<div class="timebox">⏱ ~90 min &middot; theory 45 / lab 45</div>
+
+<p>JSON is wonderful for humans and terrible for hot networking paths. It's bulky, slow to parse, ambiguous about
+number types, and forces you to allocate strings for everything. P2P protocols move millions of small messages, so
+they encode data as tight <strong>binary</strong>. Today you'll learn how messages are <em>framed</em> on a stream,
+how integers are packed with <strong>varints</strong>, and how the major serialization formats trade off — then
+hand-write an encoder/decoder, which is exactly the kind of thing you may be asked to live-code.</p>
+
+<h3>4.1 Why binary beats JSON on the wire</h3>
+<table class="tbl">
+  <tr><th>Concern</th><th>JSON</th><th>Binary</th></tr>
+  <tr><td>Size</td><td><code>{"id":1000000}</code> = 15 bytes</td><td>varint = 3 bytes</td></tr>
+  <tr><td>Parse cost</td><td>Tokenize text, allocate strings</td><td>Read fixed offsets / shift bits</td></tr>
+  <tr><td>Number fidelity</td><td>All numbers are float64; no int64</td><td>Exact integer widths</td></tr>
+  <tr><td>Schema</td><td>Self-describing (keys repeated every message)</td><td>Schema known by both sides; no key overhead</td></tr>
+</table>
+
+<p>The self-describing nature of JSON is its biggest cost at scale: every message re-sends the field names. Binary
+protocols agree on a schema once, then send only values in a known order.</p>
+
+<h3>4.2 Framing: where does a message end?</h3>
+<p>TCP and UDX give you a <em>stream of bytes</em>, not messages. If you write two messages, the reader may receive
+them glued together, or split across two reads. You must impose <strong>framing</strong>. Two common approaches:</p>
+<ul>
+  <li><strong>Delimiter-based:</strong> end each message with a sentinel byte (e.g. newline). Simple, but you must
+  escape the delimiter if it can appear in the payload — awkward for binary data.</li>
+  <li><strong>Length-prefix:</strong> write the message length first, then the bytes. The reader reads the length,
+  then knows exactly how many bytes to consume. This is the standard for binary protocols and what you'll build.</li>
+</ul>
+
+<div class="callout teal">
+  <span class="lbl">The framing bug everyone hits once</span>
+  Forgetting that a single <code>'data'</code> event can contain <em>part</em> of a message, <em>multiple</em>
+  messages, or a message <em>plus part of the next</em>. A correct length-prefix reader buffers incoming bytes and
+  emits messages only when a full frame has arrived. Get this wrong and your protocol works in tests and corrupts
+  under load.
+</div>
+
+<h3>4.3 Varints: integers that earn their bytes</h3>
+<p>Most integers in real protocols are small (lengths, counts, indices). Spending 4 or 8 fixed bytes on a value of
+<code>5</code> is wasteful. A <strong>varint</strong> (LEB128, as used by Protobuf, WebAssembly, and Holepunch's
+<code>compact-encoding</code>) encodes an integer in a variable number of bytes: 7 bits of value per byte, with the
+high bit as a "more bytes follow" continuation flag.</p>
+<ul>
+  <li>Values 0&ndash;127 → 1 byte</li>
+  <li>128&ndash;16383 → 2 bytes</li>
+  <li>…7 more bits per additional byte</li>
+</ul>
+<p>So small numbers cost one byte, and you only pay for big numbers when you actually use them. This is the single
+most common trick in compact wire formats.</p>
+
+<h3>4.4 The serialization landscape</h3>
+<table class="tbl">
+  <tr><th>Format</th><th>Shape</th><th>Notes</th></tr>
+  <tr><td><strong>Protocol Buffers</strong></td><td>Schema (.proto), varint-based</td><td>Compact, fast, ubiquitous; needs codegen. Tag-length-value fields.</td></tr>
+  <tr><td><strong>MessagePack</strong></td><td>Schemaless, JSON-shaped</td><td>"Binary JSON" — drop-in for JSON, self-describing, no schema needed.</td></tr>
+  <tr><td><strong>Cap'n Proto</strong></td><td>Schema, zero-copy</td><td>Memory layout <em>is</em> the wire format; "infinitely faster" — no parse step.</td></tr>
+  <tr><td><strong>FlatBuffers</strong></td><td>Schema, zero-copy</td><td>Access fields without unpacking the whole buffer; great for large messages read partially.</td></tr>
+  <tr><td><strong>compact-encoding</strong></td><td>Hand-composed codecs</td><td>Holepunch's lib: tiny, explicit, varint-first. You compose encoders by hand.</td></tr>
+</table>
+
+<p>The key conceptual split: <strong>parse-based</strong> formats (Protobuf, MessagePack) decode bytes into new
+in-memory objects, while <strong>zero-copy</strong> formats (Cap'n Proto, FlatBuffers) let you read fields directly
+out of the received buffer with no allocation or decode pass. Zero-copy wins when messages are large or you only
+read a few fields; parse-based is simpler and fine for small messages. <code>compact-encoding</code> sits in the
+parse-based camp but is deliberately minimal and gives you total control — which is why it suits a P2P stack where
+every byte and allocation counts.</p>
+
+<h3>4.5 Lab — hand-write a length-prefixed varint protocol</h3>
+<div class="lab">
+  <span class="labtag">Lab 04</span>
+  <h4>Goal</h4>
+  <p>Implement varint encode/decode, then a length-prefixed framer that correctly reassembles messages from an
+  arbitrarily-chunked byte stream. Finish by encoding a structured message by hand. Then compare against real
+  <code>compact-encoding</code>.</p>
+
+  <h4>Step 1 — varints</h4>
+  <pre><code><span class="c">// varint.js</span>
+<span class="k">function</span> <span class="f">encodeVarint</span>(value) {
+  <span class="k">const</span> bytes = [];
+  <span class="k">while</span> (value &gt; <span class="n">0x7f</span>) {            <span class="c">// while more than 7 bits remain</span>
+    bytes.<span class="f">push</span>((value &amp; <span class="n">0x7f</span>) | <span class="n">0x80</span>); <span class="c">// low 7 bits + continuation flag</span>
+    value = Math.<span class="f">floor</span>(value / <span class="n">128</span>);  <span class="c">// >>> 7 but safe past 32 bits</span>
+  }
+  bytes.<span class="f">push</span>(value &amp; <span class="n">0x7f</span>);            <span class="c">// final byte, no continuation</span>
+  <span class="k">return</span> Buffer.<span class="f">from</span>(bytes);
+}
+
+<span class="k">function</span> <span class="f">decodeVarint</span>(buf, offset = <span class="n">0</span>) {
+  <span class="k">let</span> result = <span class="n">0</span>, shift = <span class="n">0</span>, pos = offset;
+  <span class="k">while</span> (<span class="k">true</span>) {
+    <span class="k">const</span> byte = buf[pos++];
+    result += (byte &amp; <span class="n">0x7f</span>) * Math.<span class="f">pow</span>(<span class="n">2</span>, shift);
+    <span class="k">if</span> ((byte &amp; <span class="n">0x80</span>) === <span class="n">0</span>) <span class="k">break</span>;  <span class="c">// continuation bit clear -> done</span>
+    shift += <span class="n">7</span>;
+  }
+  <span class="k">return</span> { value: result, bytesRead: pos - offset };
+}
+
+<span class="c">// sanity</span>
+<span class="k">for</span> (<span class="k">const</span> v <span class="k">of</span> [<span class="n">0</span>, <span class="n">1</span>, <span class="n">127</span>, <span class="n">128</span>, <span class="n">300</span>, <span class="n">1000000</span>]) {
+  <span class="k">const</span> enc = <span class="f">encodeVarint</span>(v);
+  <span class="k">const</span> dec = <span class="f">decodeVarint</span>(enc).value;
+  console.<span class="f">log</span>(v, <span class="s">'->'</span>, [...enc], <span class="s">`(</span>${enc.length}<span class="s"> bytes) ->`</span>, dec);
+}
+module.exports = { encodeVarint, decodeVarint };</code></pre>
+  <pre><code>node varint.js
+<span class="c">// 0 -> [0] (1 bytes) -> 0</span>
+<span class="c">// 127 -> [127] (1 bytes) -> 127</span>
+<span class="c">// 128 -> [128,1] (2 bytes) -> 128</span>
+<span class="c">// 300 -> [172,2] (2 bytes) -> 300</span>
+<span class="c">// 1000000 -> [192,132,61] (3 bytes) -> 1000000   &lt;- vs 15 bytes as JSON</span></code></pre>
+
+  <h4>Step 2 — a correct length-prefixed framer</h4>
+  <p>This is the part interviewers love, because the naive version is subtly broken. The framer buffers raw bytes and
+  only emits a message when a complete frame is present — handling split <em>and</em> coalesced reads.</p>
+  <pre><code><span class="c">// framer.js</span>
+<span class="k">const</span> { encodeVarint, decodeVarint } = <span class="f">require</span>(<span class="s">'./varint'</span>);
+<span class="k">const</span> EventEmitter = <span class="f">require</span>(<span class="s">'events'</span>);
+
+<span class="k">function</span> <span class="f">frame</span>(payload) {
+  <span class="k">const</span> len = <span class="f">encodeVarint</span>(payload.length);
+  <span class="k">return</span> Buffer.<span class="f">concat</span>([len, payload]); <span class="c">// [varint length][payload bytes]</span>
+}
+
+<span class="k">class</span> <span class="f">Decoder</span> <span class="k">extends</span> EventEmitter {
+  <span class="f">constructor</span>() { <span class="k">super</span>(); <span class="k">this</span>.buf = Buffer.<span class="f">alloc</span>(<span class="n">0</span>); }
+  <span class="f">push</span>(chunk) {
+    <span class="k">this</span>.buf = Buffer.<span class="f">concat</span>([<span class="k">this</span>.buf, chunk]); <span class="c">// accumulate</span>
+    <span class="k">while</span> (<span class="k">this</span>.buf.length &gt; <span class="n">0</span>) {
+      <span class="k">let</span> header;
+      <span class="k">try</span> { header = <span class="f">decodeVarint</span>(<span class="k">this</span>.buf, <span class="n">0</span>); }
+      <span class="k">catch</span> { <span class="k">return</span>; }                       <span class="c">// length not fully arrived</span>
+      <span class="k">const</span> total = header.bytesRead + header.value;
+      <span class="k">if</span> (<span class="k">this</span>.buf.length &lt; total) <span class="k">return</span>;     <span class="c">// full frame not here yet — wait</span>
+      <span class="k">const</span> payload = <span class="k">this</span>.buf.<span class="f">subarray</span>(header.bytesRead, total);
+      <span class="k">this</span>.<span class="f">emit</span>(<span class="s">'message'</span>, Buffer.<span class="f">from</span>(payload));
+      <span class="k">this</span>.buf = <span class="k">this</span>.buf.<span class="f">subarray</span>(total);   <span class="c">// keep the remainder</span>
+    }
+  }
+}
+module.exports = { frame, Decoder };</code></pre>
+
+  <h4>Step 3 — prove it survives evil chunking</h4>
+  <pre><code><span class="c">// test-framer.js</span>
+<span class="k">const</span> { frame, Decoder } = <span class="f">require</span>(<span class="s">'./framer'</span>);
+
+<span class="k">const</span> messages = [<span class="s">'hello'</span>, <span class="s">'a'</span>, <span class="s">'a much longer message here'</span>, <span class="s">'last'</span>]
+  .<span class="f">map</span>(s =&gt; Buffer.<span class="f">from</span>(s));
+<span class="k">const</span> stream = Buffer.<span class="f">concat</span>(messages.<span class="f">map</span>(frame)); <span class="c">// all frames glued together</span>
+
+<span class="k">const</span> dec = <span class="k">new</span> <span class="f">Decoder</span>();
+<span class="k">const</span> out = [];
+dec.<span class="f">on</span>(<span class="s">'message'</span>, m =&gt; out.<span class="f">push</span>(m.<span class="f">toString</span>()));
+
+<span class="c">// feed the stream in deliberately awful 3-byte chunks</span>
+<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; stream.length; i += <span class="n">3</span>)
+  dec.<span class="f">push</span>(stream.<span class="f">subarray</span>(i, i + <span class="n">3</span>));
+
+console.<span class="f">log</span>(out);
+<span class="c">// [ 'hello', 'a', 'a much longer message here', 'last' ]  ✅ reassembled perfectly</span></code></pre>
+
+  <h4>Step 4 — encode a structured message by hand</h4>
+  <p>A "peer announce" message: a 1-byte type tag, a varint topic length + topic bytes, and a fixed 6-byte address
+  (4-byte IPv4 + 2-byte port).</p>
+  <pre><code><span class="c">// announce.js</span>
+<span class="k">const</span> { encodeVarint, decodeVarint } = <span class="f">require</span>(<span class="s">'./varint'</span>);
+<span class="k">const</span> TYPE_ANNOUNCE = <span class="n">0x01</span>;
+
+<span class="k">function</span> <span class="f">encodeAnnounce</span>({ topic, ip, port }) {
+  <span class="k">const</span> topicBuf = Buffer.<span class="f">from</span>(topic);
+  <span class="k">const</span> addr = Buffer.<span class="f">alloc</span>(<span class="n">6</span>);
+  ip.<span class="f">split</span>(<span class="s">'.'</span>).<span class="f">forEach</span>((o, i) =&gt; addr[i] = <span class="f">Number</span>(o));
+  addr.<span class="f">writeUInt16BE</span>(port, <span class="n">4</span>); <span class="c">// big-endian = network byte order</span>
+  <span class="k">return</span> Buffer.<span class="f">concat</span>([
+    Buffer.<span class="f">from</span>([TYPE_ANNOUNCE]),
+    <span class="f">encodeVarint</span>(topicBuf.length), topicBuf,
+    addr
+  ]);
+}
+
+<span class="k">function</span> <span class="f">decodeAnnounce</span>(buf) {
+  <span class="k">let</span> off = <span class="n">0</span>;
+  <span class="k">const</span> type = buf[off++];
+  <span class="k">const</span> { value: tlen, bytesRead } = <span class="f">decodeVarint</span>(buf, off); off += bytesRead;
+  <span class="k">const</span> topic = buf.<span class="f">subarray</span>(off, off + tlen).<span class="f">toString</span>(); off += tlen;
+  <span class="k">const</span> ip = [...buf.<span class="f">subarray</span>(off, off + <span class="n">4</span>)].<span class="f">join</span>(<span class="s">'.'</span>); off += <span class="n">4</span>;
+  <span class="k">const</span> port = buf.<span class="f">readUInt16BE</span>(off);
+  <span class="k">return</span> { type, topic, ip, port };
+}
+
+<span class="k">const</span> wire = <span class="f">encodeAnnounce</span>({ topic: <span class="s">'chat-room-42'</span>, ip: <span class="s">'192.168.1.50'</span>, port: <span class="n">9000</span> });
+console.<span class="f">log</span>(<span class="s">'bytes :'</span>, wire.length, [...wire]);
+console.<span class="f">log</span>(<span class="s">'decoded:'</span>, <span class="f">decodeAnnounce</span>(wire));</code></pre>
+
+  <h4>Step 5 — the real thing: <code>compact-encoding</code></h4>
+  <pre><code>npm install compact-encoding</code></pre>
+  <pre><code><span class="c">// ce.js</span>
+<span class="k">const</span> c = <span class="f">require</span>(<span class="s">'compact-encoding'</span>);
+
+<span class="c">// compose a struct codec from primitives</span>
+<span class="k">const</span> announce = {
+  <span class="f">preencode</span>(state, m) {     <span class="c">// pass 1: measure</span>
+    c.string.<span class="f">preencode</span>(state, m.topic);
+    c.uint16.<span class="f">preencode</span>(state, m.port);
+  },
+  <span class="f">encode</span>(state, m) {        <span class="c">// pass 2: write</span>
+    c.string.<span class="f">encode</span>(state, m.topic);
+    c.uint16.<span class="f">encode</span>(state, m.port);
+  },
+  <span class="f">decode</span>(state) {
+    <span class="k">return</span> { topic: c.string.<span class="f">decode</span>(state), port: c.uint16.<span class="f">decode</span>(state) };
+  }
+};
+
+<span class="k">const</span> buf = c.<span class="f">encode</span>(announce, { topic: <span class="s">'chat-room-42'</span>, port: <span class="n">9000</span> });
+console.<span class="f">log</span>(<span class="s">'compact bytes:'</span>, buf.length, [...buf]);
+console.<span class="f">log</span>(<span class="s">'decoded      :'</span>, c.<span class="f">decode</span>(announce, buf));</code></pre>
+  <p>Notice the <strong>two-pass</strong> design: <code>preencode</code> computes the exact size so <code>encode</code>
+  can write into a single pre-allocated buffer with no resizing — an allocation optimization you'll revisit on Day 6.</p>
+
+  <h4>Experiments</h4>
+  <ul>
+    <li>Change the test framer chunk size to 1 byte, then to 1000. Both must produce identical output — that's the definition of correct framing.</li>
+    <li>Compare your hand-rolled announce size against the equivalent JSON string. Measure the ratio.</li>
+    <li>Add a malformed frame (a length prefix larger than the data that ever arrives) and confirm the decoder simply waits rather than crashing or emitting garbage.</li>
+  </ul>
+</div>
+
+<h3>4.6 Self-check &amp; interview drill</h3>
+<div class="qa"><div class="q">Why length-prefix instead of a delimiter?</div>
+<div class="a">Binary payloads can contain any byte, including your delimiter, forcing escaping. A length prefix needs no
+escaping and lets the reader allocate/await exactly the right number of bytes. It's the standard for binary protocols.</div></div>
+<div class="qa"><div class="q">Explain a varint and when it pays off.</div>
+<div class="a">7 value-bits per byte with a high continuation bit. Small numbers cost one byte; you only pay extra bytes for
+larger values. It pays off because most protocol integers (lengths, counts, indices) are small.</div></div>
+<div class="qa"><div class="q">Parse-based vs zero-copy serialization?</div>
+<div class="a">Parse-based (Protobuf, MessagePack) decodes bytes into fresh objects. Zero-copy (Cap'n Proto, FlatBuffers) lets
+you read fields straight from the received buffer with no decode pass — better for large messages or partial reads,
+at the cost of a more rigid layout.</div></div>
+
+<ul class="checklist">
+  <li>I can encode and decode a varint and explain its byte-size curve.</li>
+  <li>I can implement a length-prefix framer that survives split and coalesced reads.</li>
+  <li>I can hand-encode a structured message with mixed fixed and variable fields.</li>
+  <li>I understand <code>compact-encoding</code>'s two-pass preencode/encode design.</li>
+</ul>
+</section>
+<section class="chapter" id="ch5">
+<div class="chap-head">
+  <div class="chap-num">Day 05 — Trust Without a Server</div>
+  <h2 class="chap-title">Cryptographic Primitives</h2>
+  <p class="chap-sub">Signatures, key exchange, AEAD, and the Noise handshake that secures every Holepunch connection.</p>
+</div>
+<div class="timebox">⏱ ~90 min &middot; theory 50 / lab 40</div>
+
+<p>In a P2P network there's no certificate authority, no trusted server, no login. Identity, integrity, and
+confidentiality all come from cryptography applied directly between peers. You will <em>not</em> implement crypto
+primitives yourself (rule one of applied crypto: don't roll your own), but you must understand what each primitive
+does, why it's there, and how they compose into the <strong>Noise Protocol</strong> handshake that <code>hyperdht</code>
+uses to secure connections. Today is concept-heavy with a lab using <code>sodium-native</code>, the same library the
+Holepunch stack relies on.</p>
+
+<h3>5.1 The four jobs crypto does here</h3>
+<table class="tbl">
+  <tr><th>Job</th><th>Primitive</th><th>Question it answers</th></tr>
+  <tr><td>Identity / authenticity</td><td>Ed25519 signatures</td><td>"Did the holder of this key really produce this?"</td></tr>
+  <tr><td>Key agreement</td><td>X25519 (Curve25519 ECDH)</td><td>"How do two strangers derive a shared secret over a public channel?"</td></tr>
+  <tr><td>Confidentiality + integrity</td><td>ChaCha20-Poly1305 / AES-GCM (AEAD)</td><td>"How do we encrypt so tampering is detectable?"</td></tr>
+  <tr><td>Fingerprinting / commitment</td><td>BLAKE2b hashing, Merkle trees</td><td>"How do we name and verify data compactly?"</td></tr>
+</table>
+
+<h3>5.2 Ed25519 — identity as a keypair</h3>
+<p>In Hypercore the <strong>public key <em>is</em> the address</strong> of a feed, and the secret key authorizes
+appends. Ed25519 is the signature scheme behind this: fast, deterministic (no risky randomness at signing time, the
+flaw that has broken ECDSA implementations), small keys and signatures (32 and 64 bytes). A signature proves a
+message was produced by the holder of the secret key and hasn't been altered. This is the entire basis of "single
+writer" — only one party can sign valid appends, and every reader can verify them with just the public key.</p>
+
+<h3>5.3 X25519 — agreeing on a secret in the open</h3>
+<p>Two peers who have never met need a shared symmetric key to encrypt their session. <strong>Diffie&ndash;Hellman</strong>
+over Curve25519 (X25519) lets each side combine its own secret with the other's public value to compute the
+<em>same</em> shared secret, while an eavesdropper who sees only the public values cannot. Using fresh
+<strong>ephemeral</strong> keypairs per session gives <strong>forward secrecy</strong>: even if a long-term key leaks
+later, past sessions stay private because their ephemeral secrets are already gone.</p>
+
+<div class="callout teal">
+  <span class="lbl">Signing vs key-exchange keys</span>
+  Ed25519 (signing) and X25519 (key exchange) are sister curves — same underlying Curve25519 math, different jobs.
+  Don't conflate them: you sign with Ed25519 to prove identity, and DH with X25519 to derive session keys.
+</div>
+
+<h3>5.4 AEAD — encrypt and authenticate together</h3>
+<p>Plain encryption hides content but doesn't stop an attacker flipping bits. <strong>AEAD</strong> (Authenticated
+Encryption with Associated Data) — ChaCha20-Poly1305 or AES-GCM — encrypts <em>and</em> produces an authentication
+tag, so any tampering is detected on decryption. "Associated data" lets you bind unencrypted context (like a header)
+to the ciphertext so it can't be swapped. Every byte of an established Noise session rides inside AEAD frames.</p>
+
+<h3>5.5 BLAKE2b and Merkle trees, revisited</h3>
+<p>You met Merkle trees on Day 2. The hash underneath them in Hypercore is <strong>BLAKE2b</strong> — faster than
+SHA-256, with strong security margins. Hashing gives you fixed-size, collision-resistant fingerprints used for
+content addressing, the discovery key derived from a feed's public key, and the block/tree hashes that make partial
+replication verifiable.</p>
+
+<h3>5.6 The Noise Protocol Framework</h3>
+<p>Noise is a <em>framework</em> for building secure handshakes by composing the primitives above into a fixed
+sequence of DH operations. It's what WireGuard, WhatsApp, and Holepunch's transport use. A Noise handshake is named
+by a <strong>pattern</strong> of message tokens:</p>
+<ul>
+  <li><strong>XX</strong>: both parties exchange and authenticate static keys <em>during</em> the handshake. Mutual
+  authentication without either side knowing the other's key in advance — the general-purpose default.</li>
+  <li><strong>IK</strong>: the initiator already knows the responder's static key (e.g. you're dialing a specific peer
+  whose public key you looked up in the DHT). Faster, fewer round trips, and hides the initiator's identity from
+  passive eavesdroppers.</li>
+  <li><strong>NK / NN / KK …</strong>: other combinations of who-knows-what ahead of time.</li>
+</ul>
+<p>Each handshake message mixes new DH outputs into a running shared state; by the end both sides have derived
+matching symmetric keys for an AEAD-encrypted session with forward secrecy. The elegance is that the <em>pattern</em>
+declares the security properties, and the framework guarantees them.</p>
+
+<div class="callout">
+  <span class="lbl">Holepunch note</span>
+  When you connect through <code>hyperdht</code>/<code>hyperswarm</code>, the peers run a Noise handshake (an
+  <strong>IK</strong>-style pattern fits the "I looked up your key in the DHT, now I'm dialing you" model) to
+  authenticate and establish an encrypted, forward-secret channel — <em>before</em> any application data flows. The
+  primitives are Ed25519/X25519/BLAKE2b/ChaCha20-Poly1305 via <code>sodium-native</code>. Being able to say "Noise IK,
+  because the dialer already has the responder's static key from the DHT lookup" is a top-tier interview answer.
+</div>
+
+<h3>5.7 Lab — signatures, key exchange, AEAD, and a mini DH handshake</h3>
+<div class="lab">
+  <span class="labtag">Lab 05</span>
+  <h4>Goal</h4>
+  <p>Use real, production primitives to (1) sign and verify like a Hypercore writer, (2) perform an X25519 key
+  exchange and confirm both sides derive the same secret, (3) AEAD-encrypt with tamper detection, and (4) sketch the
+  shape of a Noise-style handshake.</p>
+
+  <h4>Setup</h4>
+  <pre><code>npm install sodium-native</code></pre>
+  <p><code>sodium-native</code> is libsodium bindings — the exact crypto layer under Hypercore. (If it fails to build
+  in your environment, Node's built-in <code>crypto</code> also supports Ed25519/X25519; the concepts are identical.)</p>
+
+  <h4>Step 1 — Ed25519 sign &amp; verify (the "single writer" proof)</h4>
+  <pre><code><span class="c">// sign.js</span>
+<span class="k">const</span> sodium = <span class="f">require</span>(<span class="s">'sodium-native'</span>);
+
+<span class="c">// generate a signing keypair</span>
+<span class="k">const</span> pk = Buffer.<span class="f">alloc</span>(sodium.crypto_sign_PUBLICKEYBYTES); <span class="c">// 32</span>
+<span class="k">const</span> sk = Buffer.<span class="f">alloc</span>(sodium.crypto_sign_SECRETKEYBYTES); <span class="c">// 64</span>
+sodium.<span class="f">crypto_sign_keypair</span>(pk, sk);
+
+<span class="k">const</span> message = Buffer.<span class="f">from</span>(<span class="s">'append: block #42'</span>);
+<span class="k">const</span> sig = Buffer.<span class="f">alloc</span>(sodium.crypto_sign_BYTES);   <span class="c">// 64</span>
+sodium.<span class="f">crypto_sign_detached</span>(sig, message, sk);
+
+<span class="k">const</span> ok = sodium.<span class="f">crypto_sign_verify_detached</span>(sig, message, pk);
+console.<span class="f">log</span>(<span class="s">'signature valid:'</span>, ok);
+
+<span class="c">// tamper -> verification fails (integrity + authenticity)</span>
+<span class="k">const</span> forged = Buffer.<span class="f">from</span>(<span class="s">'append: block #43'</span>);
+console.<span class="f">log</span>(<span class="s">'forged valid  :'</span>, sodium.<span class="f">crypto_sign_verify_detached</span>(sig, forged, pk));</code></pre>
+
+  <h4>Step 2 — X25519 key exchange (two strangers, one secret)</h4>
+  <pre><code><span class="c">// dh.js</span>
+<span class="k">const</span> sodium = <span class="f">require</span>(<span class="s">'sodium-native'</span>);
+
+<span class="k">function</span> <span class="f">keypair</span>() {
+  <span class="k">const</span> pk = Buffer.<span class="f">alloc</span>(sodium.crypto_kx_PUBLICKEYBYTES);
+  <span class="k">const</span> sk = Buffer.<span class="f">alloc</span>(sodium.crypto_kx_SECRETKEYBYTES);
+  sodium.<span class="f">crypto_kx_keypair</span>(pk, sk);
+  <span class="k">return</span> { pk, sk };
+}
+
+<span class="k">const</span> alice = <span class="f">keypair</span>();
+<span class="k">const</span> bob = <span class="f">keypair</span>();
+
+<span class="c">// each derives session keys from own secret + peer's public key</span>
+<span class="k">const</span> aRx = Buffer.<span class="f">alloc</span>(sodium.crypto_kx_SESSIONKEYBYTES);
+<span class="k">const</span> aTx = Buffer.<span class="f">alloc</span>(sodium.crypto_kx_SESSIONKEYBYTES);
+<span class="k">const</span> bRx = Buffer.<span class="f">alloc</span>(sodium.crypto_kx_SESSIONKEYBYTES);
+<span class="k">const</span> bTx = Buffer.<span class="f">alloc</span>(sodium.crypto_kx_SESSIONKEYBYTES);
+
+sodium.<span class="f">crypto_kx_client_session_keys</span>(aRx, aTx, alice.pk, alice.sk, bob.pk);
+sodium.<span class="f">crypto_kx_server_session_keys</span>(bRx, bTx, bob.pk, bob.sk, alice.pk);
+
+<span class="c">// alice's TX key == bob's RX key  -> shared secret agreed over a public channel</span>
+console.<span class="f">log</span>(<span class="s">'keys match:'</span>, aTx.<span class="f">equals</span>(bRx) &amp;&amp; bTx.<span class="f">equals</span>(aRx));</code></pre>
+
+  <h4>Step 3 — AEAD encryption with tamper detection</h4>
+  <pre><code><span class="c">// aead.js</span>
+<span class="k">const</span> sodium = <span class="f">require</span>(<span class="s">'sodium-native'</span>);
+
+<span class="k">const</span> key = Buffer.<span class="f">alloc</span>(sodium.crypto_aead_chacha20poly1305_ietf_KEYBYTES);
+sodium.<span class="f">randombytes_buf</span>(key);
+<span class="k">const</span> nonce = Buffer.<span class="f">alloc</span>(sodium.crypto_aead_chacha20poly1305_ietf_NPUBBYTES);
+sodium.<span class="f">randombytes_buf</span>(nonce); <span class="c">// MUST be unique per message under a key</span>
+
+<span class="k">const</span> plaintext = Buffer.<span class="f">from</span>(<span class="s">'secret peer payload'</span>);
+<span class="k">const</span> ad = Buffer.<span class="f">from</span>(<span class="s">'msg-type:3'</span>); <span class="c">// associated data: authenticated, not encrypted</span>
+<span class="k">const</span> ct = Buffer.<span class="f">alloc</span>(plaintext.length + sodium.crypto_aead_chacha20poly1305_ietf_ABYTES);
+
+sodium.<span class="f">crypto_aead_chacha20poly1305_ietf_encrypt</span>(ct, plaintext, ad, <span class="k">null</span>, nonce, key);
+
+<span class="k">const</span> out = Buffer.<span class="f">alloc</span>(ct.length - sodium.crypto_aead_chacha20poly1305_ietf_ABYTES);
+sodium.<span class="f">crypto_aead_chacha20poly1305_ietf_decrypt</span>(out, <span class="k">null</span>, ct, ad, nonce, key);
+console.<span class="f">log</span>(<span class="s">'decrypted:'</span>, out.<span class="f">toString</span>());
+
+<span class="c">// flip one ciphertext byte -> decrypt throws (the Poly1305 tag fails)</span>
+ct[<span class="n">0</span>] ^= <span class="n">0xff</span>;
+<span class="k">try</span> {
+  sodium.<span class="f">crypto_aead_chacha20poly1305_ietf_decrypt</span>(out, <span class="k">null</span>, ct, ad, nonce, key);
+  console.<span class="f">log</span>(<span class="s">'tamper undetected (BAD)'</span>);
+} <span class="k">catch</span> {
+  console.<span class="f">log</span>(<span class="s">'tamper detected: decryption rejected ✅'</span>);
+}</code></pre>
+
+  <h4>Step 4 — sketch a Noise-style handshake</h4>
+  <p>This is a <em>conceptual</em> 2-message exchange (not a spec-compliant Noise impl) to show how DH + hashing
+  compose into a session. Each side mixes ephemeral DH output into a running hash to derive a shared key.</p>
+  <pre><code><span class="c">// mini-noise.js — illustrative only; use the 'noise-protocol' / hyperswarm libs for real</span>
+<span class="k">const</span> sodium = <span class="f">require</span>(<span class="s">'sodium-native'</span>);
+<span class="k">const</span> <span class="f">hash</span> = (b) =&gt; { <span class="k">const</span> o = Buffer.<span class="f">alloc</span>(<span class="n">32</span>); sodium.<span class="f">crypto_generichash</span>(o, b); <span class="k">return</span> o; };
+
+<span class="k">function</span> <span class="f">eph</span>() {
+  <span class="k">const</span> pk = Buffer.<span class="f">alloc</span>(<span class="n">32</span>), sk = Buffer.<span class="f">alloc</span>(<span class="n">32</span>);
+  sodium.<span class="f">crypto_box_keypair</span>(pk, sk); <span class="k">return</span> { pk, sk };
+}
+<span class="k">function</span> <span class="f">dh</span>(sk, pk) {
+  <span class="k">const</span> out = Buffer.<span class="f">alloc</span>(<span class="n">32</span>);
+  sodium.<span class="f">crypto_scalarmult</span>(out, sk, pk); <span class="k">return</span> out;
+}
+
+<span class="k">const</span> i = <span class="f">eph</span>(), r = <span class="f">eph</span>();        <span class="c">// initiator + responder ephemerals</span>
+<span class="c">// -> e   : initiator sends its ephemeral public key</span>
+<span class="c">// &lt;- e   : responder sends its ephemeral public key</span>
+<span class="c">// both compute the same DH(e_i, e_r) and mix it into a session key</span>
+<span class="k">const</span> kI = <span class="f">hash</span>(<span class="f">dh</span>(i.sk, r.pk));
+<span class="k">const</span> kR = <span class="f">hash</span>(<span class="f">dh</span>(r.sk, i.pk));
+console.<span class="f">log</span>(<span class="s">'handshake keys match:'</span>, kI.<span class="f">equals</span>(kR));
+console.<span class="f">log</span>(<span class="s">'(real Noise also mixes static keys + transcript hash for auth)'</span>);</code></pre>
+
+  <h4>Experiments</h4>
+  <ul>
+    <li>In Step 3, reuse the same nonce for two messages. Crypto won't error, but you've just broken the cipher's security — this is why nonce management is the #1 AEAD footgun. Note how real protocols derive per-message nonces from a counter.</li>
+    <li>In Step 4, generate <em>fresh</em> ephemerals each run and confirm the derived key changes every time — that's forward secrecy in action.</li>
+    <li>Look up the <code>noise-protocol</code> npm package and identify which functions correspond to the XX vs IK patterns.</li>
+  </ul>
+</div>
+
+<h3>5.8 Self-check &amp; interview drill</h3>
+<div class="qa"><div class="q">Why Ed25519 for identity and X25519 for sessions — why two keys?</div>
+<div class="a">Different jobs: Ed25519 signs to prove a message came from a specific identity; X25519 does Diffie&ndash;Hellman to
+derive a shared session secret. They share Curve25519 math but aren't interchangeable.</div></div>
+<div class="qa"><div class="q">What does AEAD add over plain encryption?</div>
+<div class="a">An authentication tag, so tampering with ciphertext (or the bound associated data) is detected and rejected on
+decrypt. Confidentiality plus integrity in one operation.</div></div>
+<div class="qa"><div class="q">XX vs IK Noise patterns — when each?</div>
+<div class="a">XX when neither side knows the other's static key in advance (mutual auth during the handshake). IK when the
+initiator already has the responder's static key — e.g. dialing a peer whose public key came from a DHT lookup —
+giving fewer round trips and initiator-identity hiding. That's the natural fit for <code>hyperdht</code>.</div></div>
+<div class="qa"><div class="q">What gives a session forward secrecy?</div>
+<div class="a">Ephemeral per-session DH keypairs. Once discarded, a later compromise of long-term keys can't decrypt past
+sessions, because the ephemeral secrets that derived those session keys no longer exist.</div></div>
+
+<ul class="checklist">
+  <li>I can map each primitive (Ed25519, X25519, AEAD, BLAKE2b) to the job it does.</li>
+  <li>I signed and verified a message and watched a forged one fail.</li>
+  <li>I ran an X25519 exchange and confirmed both sides derived the same secret.</li>
+  <li>I can explain Noise patterns and why IK suits DHT-based dialing.</li>
+</ul>
+</section>
+<section class="chapter" id="ch6">
+<div class="chap-head">
+  <div class="chap-num">Day 06 — Going Fast</div>
+  <h2 class="chap-title">High-Performance JS Networking</h2>
+  <p class="chap-sub">The event loop, buffers, backpressure, and the allocation discipline that separates a toy from a relay.</p>
+</div>
+<div class="timebox">⏱ ~90 min &middot; theory 45 / lab 45</div>
+
+<p>You can know every protocol and still write a P2P node that melts under load. Performance in Node networking is
+mostly about three things: respecting the <strong>event loop</strong>, managing <strong>buffers</strong> without
+drowning the garbage collector, and honoring <strong>backpressure</strong> so a fast sender can't overwhelm a slow
+consumer. This chapter is where the relay-and-throughput intuition that interviewers probe actually lives.</p>
+
+<h3>6.1 The event loop is your whole performance model</h3>
+<p>Node runs your JavaScript on a <strong>single thread</strong>. I/O (sockets, files) is handed off to libuv and
+completes asynchronously, but every callback, every <code>data</code> handler, every bit of parsing runs on that one
+thread. The rule that follows is absolute: <strong>never block the loop</strong>. A synchronous JSON.parse of a huge
+payload, a tight CPU loop, a synchronous crypto call on every packet — each one stalls <em>all</em> connections, not
+just one. Throughput collapses not because the network is slow but because the loop is busy.</p>
+
+<ul>
+  <li>Keep per-event work small and bounded. Offload heavy CPU (large hashing, compression) to a <code>worker_thread</code> or a native addon that releases the loop.</li>
+  <li>Prefer streaming/incremental parsing over "buffer the whole thing then parse."</li>
+  <li>Watch out for accidental <code>O(n²)</code>: repeated <code>Buffer.concat</code> on a growing buffer is a classic one (you'll fix it in the lab).</li>
+</ul>
+
+<div class="callout teal">
+  <span class="lbl">Mental model</span>
+  Think of the event loop as a single cashier serving every customer. The cashier is extremely fast, but if you ask
+  them to do long division by hand for one customer, the entire queue waits. Your job is to keep every interaction
+  short and push the long division elsewhere.
+</div>
+
+<h3>6.2 Buffers and the GC tax</h3>
+<p>Every <code>Buffer</code> you allocate in a hot path is future work for the garbage collector. Under high packet
+rates, allocation churn causes GC pauses that show up as latency spikes and jitter. The disciplines that matter:</p>
+<ul>
+  <li><strong><code>Buffer.allocUnsafe(n)</code></strong> skips zero-filling — faster when you're about to overwrite
+  every byte anyway (e.g. you're about to copy a frame in). Use <code>Buffer.alloc</code> only when you need the
+  zeroes. Never expose an <code>allocUnsafe</code> buffer's uninitialized tail to the wire.</li>
+  <li><strong>Reuse buffers.</strong> A pre-allocated read buffer or a small pool avoids per-message allocation. The
+  two-pass <code>preencode/encode</code> you saw in <code>compact-encoding</code> exists precisely so the library can
+  write into one correctly-sized buffer instead of growing and reallocating.</li>
+  <li><strong>Slice, don't copy.</strong> <code>buf.subarray(a, b)</code> returns a view sharing the same memory — no
+  allocation. <code>Buffer.from(buf)</code> or <code>.slice()</code>-then-copy duplicates. Use views when the
+  lifetime is safe; copy only when you must retain data past the read buffer's reuse.</li>
+</ul>
+
+<div class="callout">
+  <span class="lbl">Holepunch note</span>
+  This is exactly the discipline a relay like a HiveRelay node lives or dies by. A relay forwards huge numbers of
+  small frames; if each forwarded frame allocates a fresh buffer and triggers a <code>concat</code>, GC pressure caps
+  your throughput long before bandwidth does. Pre-sized read buffers, <code>subarray</code> views for forwarding, and
+  bounded per-event work are what let a single Node process push serious packet rates.
+</div>
+
+<h3>6.3 Backpressure: the rule everyone forgets</h3>
+<p><code>socket.write(chunk)</code> returns a boolean. When it returns <code>false</code>, the kernel/stream buffer is
+full and you must <strong>stop writing</strong> until the <code>'drain'</code> event fires. Ignore this and Node
+happily queues your data in memory — unbounded — until the process balloons and dies. A fast producer feeding a slow
+socket is the most common way a P2P node runs out of memory.</p>
+<p>The clean solutions: use <code>stream.pipe()</code> (which handles backpressure for you), or <code>pipeline()</code>,
+or honor the <code>write</code>/<code>'drain'</code> contract manually. Async iterators (<code>for await...of</code>
+over a readable) also propagate backpressure naturally.</p>
+
+<h3>6.4 Measuring: latency vs throughput</h3>
+<p>Two different numbers people constantly conflate:</p>
+<ul>
+  <li><strong>Throughput</strong> — bytes or messages per second. Bounded by per-message CPU cost, allocation, and bandwidth.</li>
+  <li><strong>Latency</strong> — time for one message to make the trip. Bounded by round-trips, queueing, and event-loop delay.</li>
+</ul>
+<p>You can have great throughput and terrible tail latency (big batches, long GC pauses) or low latency and poor
+throughput (tiny unbatched writes with per-message overhead). Always measure <strong>percentiles</strong> (p50, p99),
+never just the mean — the mean hides exactly the stalls that matter. <code>perf_hooks.monitorEventLoopDelay()</code>
+quantifies how much the loop itself is the bottleneck.</p>
+
+<h3>6.5 Lab — find and fix the throughput killers</h3>
+<div class="lab">
+  <span class="labtag">Lab 06</span>
+  <h4>Goal</h4>
+  <p>Measure three real performance effects: (1) the <code>Buffer.concat</code> <code>O(n²)</code> trap vs a
+  pre-sized buffer, (2) <code>allocUnsafe</code> vs <code>alloc</code> in a hot loop, and (3) backpressure on a TCP
+  socket. You'll produce numbers, not just theory.</p>
+
+  <h4>Step 1 — the accumulating-concat trap</h4>
+  <pre><code><span class="c">// concat-trap.js — why naive reassembly is O(n^2)</span>
+<span class="k">const</span> { performance } = <span class="f">require</span>(<span class="s">'perf_hooks'</span>);
+<span class="k">const</span> CHUNKS = <span class="n">20000</span>;
+<span class="k">const</span> chunk = Buffer.<span class="f">allocUnsafe</span>(<span class="n">64</span>);
+
+<span class="c">// BAD: concat the whole growing buffer on every chunk</span>
+<span class="k">let</span> t = performance.<span class="f">now</span>();
+<span class="k">let</span> acc = Buffer.<span class="f">alloc</span>(<span class="n">0</span>);
+<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; CHUNKS; i++) acc = Buffer.<span class="f">concat</span>([acc, chunk]);
+console.<span class="f">log</span>(<span class="s">'concat-each-time :'</span>, (performance.<span class="f">now</span>() - t).<span class="f">toFixed</span>(<span class="n">1</span>), <span class="s">'ms'</span>);
+
+<span class="c">// GOOD: collect references, concat ONCE at the end</span>
+t = performance.<span class="f">now</span>();
+<span class="k">const</span> parts = [];
+<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; CHUNKS; i++) parts.<span class="f">push</span>(chunk);
+<span class="k">const</span> joined = Buffer.<span class="f">concat</span>(parts);
+console.<span class="f">log</span>(<span class="s">'collect-then-join:'</span>, (performance.<span class="f">now</span>() - t).<span class="f">toFixed</span>(<span class="n">1</span>), <span class="s">'ms'</span>);
+
+<span class="c">// BEST when total size known: one allocation, copy into it</span>
+t = performance.<span class="f">now</span>();
+<span class="k">const</span> dst = Buffer.<span class="f">allocUnsafe</span>(CHUNKS * <span class="n">64</span>);
+<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; CHUNKS; i++) chunk.<span class="f">copy</span>(dst, i * <span class="n">64</span>);
+console.<span class="f">log</span>(<span class="s">'presized-copy    :'</span>, (performance.<span class="f">now</span>() - t).<span class="f">toFixed</span>(<span class="n">1</span>), <span class="s">'ms'</span>);</code></pre>
+  <pre><code>node concat-trap.js
+<span class="c">// concat-each-time : 3380.0 ms    &lt;- quadratic; explodes with size</span>
+<span class="c">// collect-then-join:    2.3 ms     &lt;- linear</span>
+<span class="c">// presized-copy    :    6.9 ms     &lt;- linear, one allocation</span></code></pre>
+  <p>The exact numbers vary by machine, but the <em>shape</em> is the lesson: the naive version is <em>hundreds to
+  thousands</em> of times slower and gets worse as the buffer grows. This is the framing decoder from Day 4 done wrong.</p>
+
+  <h4>Step 2 — allocUnsafe vs alloc in a hot path</h4>
+  <pre><code><span class="c">// alloc-bench.js</span>
+<span class="k">const</span> { performance } = <span class="f">require</span>(<span class="s">'perf_hooks'</span>);
+<span class="k">const</span> N = <span class="n">2_000_000</span>, SIZE = <span class="n">256</span>;
+
+<span class="k">let</span> t = performance.<span class="f">now</span>();
+<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; N; i++) { <span class="k">const</span> b = Buffer.<span class="f">alloc</span>(SIZE); b[<span class="n">0</span>] = <span class="n">1</span>; }
+console.<span class="f">log</span>(<span class="s">'alloc      :'</span>, (performance.<span class="f">now</span>() - t).<span class="f">toFixed</span>(<span class="n">0</span>), <span class="s">'ms'</span>);
+
+t = performance.<span class="f">now</span>();
+<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; N; i++) { <span class="k">const</span> b = Buffer.<span class="f">allocUnsafe</span>(SIZE); b[<span class="n">0</span>] = <span class="n">1</span>; }
+console.<span class="f">log</span>(<span class="s">'allocUnsafe:'</span>, (performance.<span class="f">now</span>() - t).<span class="f">toFixed</span>(<span class="n">0</span>), <span class="s">'ms'</span>);
+
+<span class="c">// BEST: one reusable buffer, no per-iteration allocation at all</span>
+t = performance.<span class="f">now</span>();
+<span class="k">const</span> reusable = Buffer.<span class="f">allocUnsafe</span>(SIZE);
+<span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; N; i++) { reusable[<span class="n">0</span>] = <span class="n">1</span>; }
+console.<span class="f">log</span>(<span class="s">'reused     :'</span>, (performance.<span class="f">now</span>() - t).<span class="f">toFixed</span>(<span class="n">0</span>), <span class="s">'ms'</span>);</code></pre>
+  <p>Zero-filling (<code>alloc</code>) costs measurable time at scale, and <em>not allocating at all</em> wins biggest.
+  In a real reader you keep one read buffer and parse out of it.</p>
+
+  <h4>Step 3 — backpressure on a real socket</h4>
+  <pre><code><span class="c">// backpressure.js — a server that floods, a client that reads slowly</span>
+<span class="k">const</span> net = <span class="f">require</span>(<span class="s">'net'</span>);
+
+<span class="k">const</span> server = net.<span class="f">createServer</span>((socket) =&gt; {
+  <span class="k">const</span> payload = Buffer.<span class="f">allocUnsafe</span>(<span class="n">64</span> * <span class="n">1024</span>); <span class="c">// 64 KB</span>
+  <span class="k">let</span> sent = <span class="n">0</span>, blocked = <span class="n">0</span>;
+
+  <span class="k">function</span> <span class="f">pump</span>() {
+    <span class="k">while</span> (sent &lt; <span class="n">2000</span>) {
+      <span class="k">const</span> ok = socket.<span class="f">write</span>(payload); <span class="c">// returns false when buffer is full</span>
+      sent++;
+      <span class="k">if</span> (!ok) {                       <span class="c">// BACKPRESSURE: stop and wait for drain</span>
+        blocked++;
+        socket.<span class="f">once</span>(<span class="s">'drain'</span>, pump);     <span class="c">// resume only when flushed</span>
+        <span class="k">return</span>;
+      }
+    }
+    console.<span class="f">log</span>(<span class="s">`done: sent </span>${sent}<span class="s"> chunks, paused </span>${blocked}<span class="s"> times for drain`</span>);
+    socket.<span class="f">end</span>();
+  }
+  <span class="f">pump</span>();
+});
+
+server.<span class="f">listen</span>(<span class="n">8124</span>, () =&gt; {
+  <span class="k">const</span> client = net.<span class="f">connect</span>(<span class="n">8124</span>);
+  <span class="k">let</span> received = <span class="n">0</span>;
+  client.<span class="f">on</span>(<span class="s">'data'</span>, (d) =&gt; {
+    received += d.length;
+    client.<span class="f">pause</span>();                       <span class="c">// simulate a slow consumer</span>
+    <span class="f">setTimeout</span>(() =&gt; client.<span class="f">resume</span>(), <span class="n">1</span>);
+  });
+  client.<span class="f">on</span>(<span class="s">'end'</span>, () =&gt; {
+    console.<span class="f">log</span>(<span class="s">`client received </span>${(received / <span class="n">1024</span> / <span class="n">1024</span>).<span class="f">toFixed</span>(<span class="n">1</span>)}<span class="s"> MB`</span>);
+    server.<span class="f">close</span>();
+  });
+});</code></pre>
+  <pre><code>node backpressure.js
+<span class="c">// done: sent 2000 chunks, paused 80+ times for drain</span>
+<span class="c">// client received 125.0 MB</span></code></pre>
+  <p>The "paused for drain" count is the system protecting itself. Delete the <code>if (!ok)</code> branch and keep
+  writing regardless: memory usage climbs without bound because Node queues everything you hand it. <em>That</em> is the
+  bug behind most "my P2P node leaks memory under load" reports.</p>
+
+  <h4>Experiments</h4>
+  <ul>
+    <li>In Step 1, raise <code>CHUNKS</code> to 40000 and watch the concat time roughly quadruple (4&times;), confirming <code>O(n²)</code> — while the other two only double.</li>
+    <li>In Step 3, log <code>socket.writableLength</code> each time <code>write</code> returns false to see the high-water mark Node is enforcing.</li>
+    <li>Add <code>const h = require('perf_hooks').monitorEventLoopDelay(); h.enable();</code> around a blocking loop and read <code>h.max</code> to quantify a stall in milliseconds.</li>
+  </ul>
+</div>
+
+<h3>6.6 Self-check &amp; interview drill</h3>
+<div class="qa"><div class="q">Why is "don't block the event loop" the cardinal rule?</div>
+<div class="a">Node serves all connections on one JS thread. Any synchronous CPU work (big parse, tight loop, sync crypto)
+stalls every connection simultaneously, so throughput and latency collapse together. Heavy work goes to worker
+threads or native addons that release the loop.</div></div>
+<div class="qa"><div class="q">When <code>allocUnsafe</code> over <code>alloc</code>, and what's the risk?</div>
+<div class="a">When you'll immediately overwrite every byte — it skips zero-filling, which is faster. The risk is leaking
+uninitialized memory if you send a buffer whose tail you didn't actually write, so always bound what you transmit to
+what you filled.</div></div>
+<div class="qa"><div class="q">What is backpressure and how do you honor it?</div>
+<div class="a"><code>socket.write</code> returning <code>false</code> means the buffer is full; you must stop writing until
+<code>'drain'</code>. Honor it via <code>pipe</code>/<code>pipeline</code>, async iteration, or the manual
+write/drain dance. Ignoring it causes unbounded memory growth.</div></div>
+<div class="qa"><div class="q">Why measure p99 latency, not the mean?</div>
+<div class="a">The mean hides tail stalls — GC pauses, event-loop blocking — which are exactly what degrade real user
+experience and what a relay must control. Percentiles surface them.</div></div>
+
+<ul class="checklist">
+  <li>I can explain why a single blocking call hurts every connection.</li>
+  <li>I measured the <code>O(n²)</code> concat trap and the pre-sized-buffer fix.</li>
+  <li>I know when <code>allocUnsafe</code> is appropriate and its hazard.</li>
+  <li>My socket lab pauses for <code>'drain'</code> and I understand what breaks without it.</li>
+</ul>
+</section>
+<section class="chapter" id="ch7">
+<div class="chap-head">
+  <div class="chap-num">Day 07 — Proof &amp; Capstone</div>
+  <h2 class="chap-title">Profiling, Optimization &amp; Integration</h2>
+  <p class="chap-sub">Flame graphs that prove your optimization worked — then build the whole stack end to end.</p>
+</div>
+<div class="timebox">⏱ ~2 hrs &middot; theory 40 / capstone 80</div>
+
+<p>Optimization without measurement is superstition. Today you learn to <em>find</em> the bottleneck before touching
+code, then you assemble everything from Days 1&ndash;6 into a single working P2P node: DHT-style discovery, a Noise-style
+handshake, length-prefixed binary framing, and verified message exchange. This is also your interview rehearsal —
+the capstone <em>is</em> the system-design answer.</p>
+
+<h3>7.1 Measure first: the profiling toolkit</h3>
+<table class="tbl">
+  <tr><th>Tool</th><th>What it shows</th><th>When to reach for it</th></tr>
+  <tr><td><code>node --prof</code></td><td>V8 sampling profile → process with <code>--prof-process</code></td><td>First look at where CPU time goes, zero deps</td></tr>
+  <tr><td><code>node --cpu-prof</code></td><td>Writes a <code>.cpuprofile</code> for Chrome DevTools</td><td>Visual flame graph in a familiar UI</td></tr>
+  <tr><td><code>clinic doctor</code></td><td>Diagnoses the <em>kind</em> of problem (CPU, I/O, GC, event-loop)</td><td>"It's slow and I don't know why"</td></tr>
+  <tr><td><code>clinic flame</code> / <code>0x</code></td><td>Flame graph of stack frames by time</td><td>Pinpoint the hot function</td></tr>
+  <tr><td><code>clinic bubbleprof</code></td><td>Async operation flow &amp; latency</td><td>Async/await and I/O latency chains</td></tr>
+  <tr><td><code>perf_hooks</code></td><td>Precise in-process timing &amp; event-loop delay</td><td>Targeted micro-measurements &amp; CI gates</td></tr>
+</table>
+
+<h4>Reading a flame graph</h4>
+<p>The x-axis is <strong>not time</strong> — it's the share of samples a function (and its callees) appeared in. Width
+= cost. Height = call-stack depth. You hunt for <strong>wide plateaus</strong>: a single wide frame is a function
+burning CPU directly; a wide frame with narrow children is the leaf where the time actually goes. Optimizing a narrow
+frame, however slow it feels, moves nothing. <em>Wide first, always.</em></p>
+
+<div class="callout teal">
+  <span class="lbl">The discipline</span>
+  Measure → form a hypothesis about the widest frame → change one thing → measure again. If the flame graph didn't
+  get narrower where you expected, revert. Most "optimizations" made without this loop are noise or regressions.
+</div>
+
+<h3>7.2 The optimization order of operations</h3>
+<ol>
+  <li><strong>Algorithm first.</strong> An <code>O(n²)</code> → <code>O(n)</code> fix (the Day 6 concat trap) beats any micro-tuning.</li>
+  <li><strong>Allocation second.</strong> Cut buffer churn in hot paths; reuse and slice instead of copy.</li>
+  <li><strong>Don't block the loop third.</strong> Move heavy CPU off-thread; keep per-event work bounded.</li>
+  <li><strong>Micro-optimize last,</strong> only with a flame graph pointing at the exact frame.</li>
+</ol>
+
+<h3>7.3 Lab — profile a deliberately slow path</h3>
+<div class="lab">
+  <span class="labtag">Lab 07a</span>
+  <h4>Goal</h4>
+  <p>Generate a CPU profile, read it, fix the hot spot, and confirm the win — the full measure-fix-measure loop.</p>
+  <pre><code><span class="c">// slow.js — a "message processor" with a hidden hot spot</span>
+<span class="k">const</span> { performance } = <span class="f">require</span>(<span class="s">'perf_hooks'</span>);
+
+<span class="k">function</span> <span class="f">processMessages</span>(n) {
+  <span class="k">let</span> log = <span class="s">''</span>;
+  <span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; n; i++) {
+    log += <span class="f">JSON</span>.<span class="f">stringify</span>({ id: i, ok: <span class="k">true</span> }) + <span class="s">'\n'</span>; <span class="c">// string += in a loop = O(n^2)-ish</span>
+  }
+  <span class="k">return</span> log.length;
+}
+
+<span class="k">const</span> t = performance.<span class="f">now</span>();
+console.<span class="f">log</span>(<span class="s">'len:'</span>, <span class="f">processMessages</span>(<span class="n">200000</span>));
+console.<span class="f">log</span>(<span class="s">'took:'</span>, (performance.<span class="f">now</span>() - t).<span class="f">toFixed</span>(<span class="n">0</span>), <span class="s">'ms'</span>);</code></pre>
+  <pre><code><span class="c"># profile it</span>
+node --cpu-prof --cpu-prof-name=slow.cpuprofile slow.js
+<span class="c"># open slow.cpuprofile in Chrome DevTools (Performance tab) -&gt; see the wide frame</span>
+
+<span class="c"># or the zero-dependency route:</span>
+node --prof slow.js
+node --prof-process isolate-*.log &gt; profile.txt
+<span class="c"># inspect the "Summary" and "Bottom up (heavy) profile" sections</span></code></pre>
+  <p>The profile fingers string concatenation / stringify as the wide frame. The fix is the same shape as Day 6:
+  collect parts, join once.</p>
+  <pre><code><span class="c">// fast.js — same output, collect-then-join</span>
+<span class="k">function</span> <span class="f">processMessages</span>(n) {
+  <span class="k">const</span> parts = [];
+  <span class="k">for</span> (<span class="k">let</span> i = <span class="n">0</span>; i &lt; n; i++) parts.<span class="f">push</span>(<span class="s">'{"id":'</span> + i + <span class="s">',"ok":true}'</span>);
+  <span class="k">return</span> parts.<span class="f">join</span>(<span class="s">'\n'</span>).length;
+}</code></pre>
+  <p>Re-profile and confirm the plateau shrank. <em>That's</em> the loop — never trust a fix you didn't re-measure.</p>
+</div>
+
+<h3>7.4 Capstone — a complete P2P node</h3>
+<p>Now we wire the week together. This single program runs a tiny in-memory "DHT" to discover a peer's address, runs
+an X25519 handshake to derive a shared key, then exchanges <strong>length-prefixed, AEAD-encrypted</strong> binary
+messages — the whole Holepunch-shaped pipeline in one file, using only Node built-ins plus <code>sodium-native</code>.</p>
+
+<div class="lab">
+  <span class="labtag">Lab 07b — Capstone</span>
+  <h4>What it integrates</h4>
+  <ul>
+    <li><strong>Day 1/3:</strong> a registry/rendezvous resolves a topic → peer address (DHT discovery, condensed).</li>
+    <li><strong>Day 5:</strong> X25519 key agreement → a shared AEAD key (the handshake).</li>
+    <li><strong>Day 4:</strong> length-prefixed varint framing over a UDP/stream boundary.</li>
+    <li><strong>Day 5:</strong> ChaCha20-Poly1305 AEAD on every message, with tamper rejection.</li>
+    <li><strong>Day 6:</strong> bounded per-event work, slice-not-copy framing, no concat-in-loop.</li>
+  </ul>
+
+  <h4>The capstone (run with <code>node capstone.js</code>)</h4>
+  <pre><code><span class="c">// capstone.js — discovery + handshake + framed encrypted messaging, in-process</span>
+<span class="k">const</span> sodium = <span class="f">require</span>(<span class="s">'sodium-native'</span>);
+<span class="k">const</span> EventEmitter = <span class="f">require</span>(<span class="s">'events'</span>);
+
+<span class="c">// ---------- Day 4: varint + length-prefix framing ----------</span>
+<span class="k">function</span> <span class="f">encodeVarint</span>(v) {
+  <span class="k">const</span> b = [];
+  <span class="k">while</span> (v &gt; <span class="n">0x7f</span>) { b.<span class="f">push</span>((v &amp; <span class="n">0x7f</span>) | <span class="n">0x80</span>); v = Math.<span class="f">floor</span>(v / <span class="n">128</span>); }
+  b.<span class="f">push</span>(v &amp; <span class="n">0x7f</span>); <span class="k">return</span> Buffer.<span class="f">from</span>(b);
+}
+<span class="k">function</span> <span class="f">decodeVarint</span>(buf, off = <span class="n">0</span>) {
+  <span class="k">let</span> r = <span class="n">0</span>, s = <span class="n">0</span>, p = off;
+  <span class="k">while</span> (<span class="k">true</span>) {
+    <span class="k">const</span> x = buf[p++]; <span class="k">if</span> (x === <span class="k">undefined</span>) <span class="k">throw</span> <span class="k">new</span> <span class="f">Error</span>(<span class="s">'incomplete'</span>);
+    r += (x &amp; <span class="n">0x7f</span>) * <span class="f">Math</span>.<span class="f">pow</span>(<span class="n">2</span>, s); <span class="k">if</span> ((x &amp; <span class="n">0x80</span>) === <span class="n">0</span>) <span class="k">break</span>; s += <span class="n">7</span>;
+  }
+  <span class="k">return</span> { value: r, bytesRead: p - off };
+}
+<span class="k">class</span> <span class="f">Framer</span> <span class="k">extends</span> EventEmitter {
+  <span class="f">constructor</span>() { <span class="k">super</span>(); <span class="k">this</span>.buf = Buffer.<span class="f">alloc</span>(<span class="n">0</span>); }
+  <span class="f">push</span>(chunk) {
+    <span class="k">this</span>.buf = Buffer.<span class="f">concat</span>([<span class="k">this</span>.buf, chunk]);
+    <span class="k">while</span> (<span class="k">this</span>.buf.length) {
+      <span class="k">let</span> h; <span class="k">try</span> { h = <span class="f">decodeVarint</span>(<span class="k">this</span>.buf); } <span class="k">catch</span> { <span class="k">return</span>; }
+      <span class="k">const</span> total = h.bytesRead + h.value;
+      <span class="k">if</span> (<span class="k">this</span>.buf.length &lt; total) <span class="k">return</span>;
+      <span class="k">this</span>.<span class="f">emit</span>(<span class="s">'message'</span>, Buffer.<span class="f">from</span>(<span class="k">this</span>.buf.<span class="f">subarray</span>(h.bytesRead, total)));
+      <span class="k">this</span>.buf = <span class="k">this</span>.buf.<span class="f">subarray</span>(total);
+    }
+  }
+}
+<span class="k">const</span> <span class="f">frame</span> = (p) =&gt; Buffer.<span class="f">concat</span>([<span class="f">encodeVarint</span>(p.length), p]);
+
+<span class="c">// ---------- Day 5: handshake + AEAD ----------</span>
+<span class="k">function</span> <span class="f">kxKeypair</span>() {
+  <span class="k">const</span> pk = Buffer.<span class="f">alloc</span>(sodium.crypto_kx_PUBLICKEYBYTES);
+  <span class="k">const</span> sk = Buffer.<span class="f">alloc</span>(sodium.crypto_kx_SECRETKEYBYTES);
+  sodium.<span class="f">crypto_kx_keypair</span>(pk, sk); <span class="k">return</span> { pk, sk };
+}
+<span class="k">const</span> A_BYTES = sodium.crypto_aead_chacha20poly1305_ietf_ABYTES;
+<span class="k">const</span> N_BYTES = sodium.crypto_aead_chacha20poly1305_ietf_NPUBBYTES;
+<span class="k">function</span> <span class="f">seal</span>(key, counter, msg) {
+  <span class="k">const</span> nonce = Buffer.<span class="f">alloc</span>(N_BYTES); nonce.<span class="f">writeUInt32LE</span>(counter, <span class="n">0</span>); <span class="c">// per-message nonce</span>
+  <span class="k">const</span> ct = Buffer.<span class="f">alloc</span>(msg.length + A_BYTES);
+  sodium.<span class="f">crypto_aead_chacha20poly1305_ietf_encrypt</span>(ct, msg, <span class="k">null</span>, <span class="k">null</span>, nonce, key);
+  <span class="k">return</span> ct;
+}
+<span class="k">function</span> <span class="f">open</span>(key, counter, ct) {
+  <span class="k">const</span> nonce = Buffer.<span class="f">alloc</span>(N_BYTES); nonce.<span class="f">writeUInt32LE</span>(counter, <span class="n">0</span>);
+  <span class="k">const</span> out = Buffer.<span class="f">alloc</span>(ct.length - A_BYTES);
+  sodium.<span class="f">crypto_aead_chacha20poly1305_ietf_decrypt</span>(out, <span class="k">null</span>, ct, <span class="k">null</span>, nonce, key);
+  <span class="k">return</span> out;
+}
+
+<span class="c">// ---------- Day 1/3: a trivial discovery registry ----------</span>
+<span class="k">const</span> registry = <span class="k">new</span> <span class="f">Map</span>(); <span class="c">// topic -> { inbox: Framer, key, counter }</span>
+
+<span class="k">function</span> <span class="f">makePeer</span>(name, topic) {
+  <span class="k">const</span> kp = <span class="f">kxKeypair</span>();
+  <span class="k">const</span> inbox = <span class="k">new</span> <span class="f">Framer</span>();
+  <span class="k">const</span> peer = { name, topic, kp, inbox, key: <span class="k">null</span>, rxCounter: <span class="n">0</span>, txCounter: <span class="n">0</span>, partner: <span class="k">null</span> };
+  registry.<span class="f">set</span>(name, peer);
+  <span class="k">return</span> peer;
+}
+
+<span class="c">// "send" = hand framed bytes to the partner's inbox (stands in for the wire)</span>
+<span class="k">function</span> <span class="f">send</span>(from, payload) {
+  <span class="k">const</span> ct = <span class="f">seal</span>(from.key, from.txCounter, payload);
+  from.txCounter++;
+  from.partner.inbox.<span class="f">push</span>(<span class="f">frame</span>(ct)); <span class="c">// length-prefixed encrypted frame</span>
+}
+
+<span class="c">// ---------- wire it together ----------</span>
+<span class="k">const</span> alice = <span class="f">makePeer</span>(<span class="s">'alice'</span>, <span class="s">'chat-42'</span>);
+<span class="k">const</span> bob = <span class="f">makePeer</span>(<span class="s">'bob'</span>, <span class="s">'chat-42'</span>);
+alice.partner = bob; bob.partner = alice;
+
+<span class="c">// discovery + handshake: derive a shared AEAD key from kx</span>
+<span class="k">function</span> <span class="f">handshake</span>(client, server) {
+  <span class="k">const</span> cRx = Buffer.<span class="f">alloc</span>(<span class="n">32</span>), cTx = Buffer.<span class="f">alloc</span>(<span class="n">32</span>);
+  <span class="k">const</span> sRx = Buffer.<span class="f">alloc</span>(<span class="n">32</span>), sTx = Buffer.<span class="f">alloc</span>(<span class="n">32</span>);
+  sodium.<span class="f">crypto_kx_client_session_keys</span>(cRx, cTx, client.kp.pk, client.kp.sk, server.kp.pk);
+  sodium.<span class="f">crypto_kx_server_session_keys</span>(sRx, sTx, server.kp.pk, server.kp.sk, client.kp.pk);
+  <span class="c">// use one direction's key for both here (demo); real protocols key each direction</span>
+  client.key = cTx; server.key = sRx; <span class="c">// cTx === sRx</span>
+  <span class="k">return</span> cTx.<span class="f">equals</span>(sRx);
+}
+console.<span class="f">log</span>(<span class="s">'handshake ok:'</span>, <span class="f">handshake</span>(alice, bob));
+
+<span class="c">// bob decrypts and verifies each framed message he receives</span>
+bob.inbox.<span class="f">on</span>(<span class="s">'message'</span>, (ct) =&gt; {
+  <span class="k">try</span> {
+    <span class="k">const</span> msg = <span class="f">open</span>(bob.key, bob.rxCounter, ct);
+    bob.rxCounter++;
+    console.<span class="f">log</span>(<span class="s">`bob received: "</span>${msg.<span class="f">toString</span>()}<span class="s">"`</span>);
+  } <span class="k">catch</span> {
+    console.<span class="f">log</span>(<span class="s">'bob: message failed AEAD verification — dropped'</span>);
+  }
+});
+
+<span class="c">// alice sends three encrypted, framed messages</span>
+<span class="f">send</span>(alice, Buffer.<span class="f">from</span>(<span class="s">'hello bob'</span>));
+<span class="f">send</span>(alice, Buffer.<span class="f">from</span>(<span class="s">'this channel is encrypted'</span>));
+<span class="f">send</span>(alice, Buffer.<span class="f">from</span>(<span class="s">'and every frame is verified'</span>));
+
+<span class="c">// tamper demo: flip a byte in a sealed frame and confirm it's rejected</span>
+<span class="k">const</span> good = <span class="f">seal</span>(alice.key, <span class="n">99</span>, Buffer.<span class="f">from</span>(<span class="s">'evil'</span>));
+good[<span class="n">2</span>] ^= <span class="n">0xff</span>;
+bob.rxCounter = <span class="n">99</span>;
+bob.inbox.<span class="f">push</span>(<span class="f">frame</span>(good)); <span class="c">// -&gt; "failed AEAD verification — dropped"</span></code></pre>
+
+  <h4>Expected output</h4>
+  <pre><code>node capstone.js
+<span class="c">// handshake ok: true</span>
+<span class="c">// bob received: "hello bob"</span>
+<span class="c">// bob received: "this channel is encrypted"</span>
+<span class="c">// bob received: "and every frame is verified"</span>
+<span class="c">// bob: message failed AEAD verification — dropped</span></code></pre>
+
+  <h4>From this skeleton to the real Holepunch stack</h4>
+  <p>Each hand-rolled piece maps to a production module: the registry → <code>hyperdht</code>; the kx handshake →
+  the Noise/UDX transport inside <code>hyperswarm</code>; the framer → <code>compact-encoding</code> + the stream
+  protocol; the append-and-verify pattern → <code>hypercore</code>. Rebuild the capstone using <code>hyperswarm</code>
+  for real: join a topic, and on <code>'connection'</code> you get an already-encrypted, already-framed stream — every
+  layer you just built by hand, productionized.</p>
+
+  <h4>Experiments</h4>
+  <ul>
+    <li>Replace the in-process registry with the real <code>dgram</code> rendezvous from Day 3 so the two peers run as separate processes.</li>
+    <li>Swap the hand framer for <code>compact-encoding</code> structs (Day 4) and confirm identical behavior.</li>
+    <li>Profile the capstone under 100k messages with <code>--cpu-prof</code>; confirm no accidental concat-in-loop and that AEAD dominates CPU (as it should).</li>
+  </ul>
+</div>
+
+<h3>7.5 Final interview drill</h3>
+<div class="qa"><div class="q">Walk me through two peers behind NATs connecting and exchanging a secure message.</div>
+<div class="a">They discover each other via a DHT (Kademlia/XOR routing) that also acts as the rendezvous; both UDP-hole-punch
+to open direct paths; they run a Noise (IK) handshake using X25519 to derive a forward-secret shared key; then they
+exchange length-prefixed binary frames, each sealed with ChaCha20-Poly1305 AEAD so tampering is detected. That's
+Days 1, 3, 4, 5 in one sentence.</div></div>
+<div class="qa"><div class="q">Why XOR distance? (the perennial)</div>
+<div class="a">It's symmetric and unidirectional, so lookups converge along consistent paths and routing tables reinforce
+each other, giving <code>O(log N)</code> hops.</div></div>
+<div class="qa"><div class="q">How would you serialize a high-rate message type efficiently?</div>
+<div class="a">Binary with a known schema, varints for small integers, fixed widths for addresses, length-prefix framing, and a
+two-pass preencode/encode so it lands in one pre-sized buffer — avoiding per-message allocation.</div></div>
+<div class="qa"><div class="q">A replication path is slow — how do you find out why?</div>
+<div class="a">Profile before guessing: <code>--cpu-prof</code> or <code>clinic flame</code> for a flame graph, look for the
+widest frame. Check for concat-in-loop (<code>O(n²)</code>), per-message allocation/GC pressure, event-loop blocking
+from sync work, and missing backpressure. Fix the widest frame, then re-measure.</div></div>
+
+<ul class="checklist">
+  <li>I can read a flame graph and explain why width matters more than height.</li>
+  <li>I follow the measure → hypothesize → change one thing → re-measure loop.</li>
+  <li>I know the optimization order: algorithm → allocation → don't block → micro.</li>
+  <li>My capstone discovers a peer, handshakes, and exchanges verified encrypted frames.</li>
+  <li>I can deliver the end-to-end "two peers connecting securely" answer cold.</li>
+</ul>
+
+<hr class="sec">
+<p style="font-style:italic;color:var(--ink-soft)">You've now built, by hand, a small version of every layer in a
+modern P2P stack — and you can explain each one and prove it runs. Walk into the interview and rebuild the capstone
+on a whiteboard from the five-layer summary above. That's the whole game.</p>
+</section>
+</div>
+<div class="footer">
+  The P2P Engineer's Field Manual &middot; 7-day crash course &middot; all labs verified on Node.js<br>
+  Built for hands-on study — read a chapter, run its lab, then explain it out loud.
+</div>
+</body>
+</html>

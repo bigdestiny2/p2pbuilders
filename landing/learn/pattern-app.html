@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>App patterns: local-first UI, optimistic writes, honest status — p2pbuilders learn</title>
+<meta name="description" content="Product-layer shapes: render from the local view, mint-then-show, identity UX, and telling users the truth.">
+<link rel="canonical" href="https://p2pbuilders.com/learn/pattern-app.html">
+<meta property="og:title" content="App patterns: local-first UI, optimistic writes, honest status — p2pbuilders learn">
+<meta property="og:description" content="Product-layer shapes: render from the local view, mint-then-show, identity UX, and telling users the truth.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.com/learn/pattern-app.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="App patterns: local-first UI, optimistic writes, honest status — p2pbuilders learn">
+<meta name="twitter:description" content="Product-layer shapes: render from the local view, mint-then-show, identity UX, and telling users the truth.">
+<meta name="twitter:image" content="https://p2pbuilders.com/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"App patterns: local-first UI, optimistic writes, honest status","description":"Product-layer shapes: render from the local view, mint-then-show, identity UX, and telling users the truth.","url":"https://p2pbuilders.com/learn/pattern-app.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.com"},"articleSection":"Patterns for P2P apps","timeRequired":"PT8M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-23","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.com/learn/"},{"@type":"ListItem","position":3,"name":"App patterns: local-first UI, optimistic writes, honest status","item":"https://p2pbuilders.com/learn/pattern-app.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Patterns for P2P apps</nav>
+<article>
+<div class="meta">8 min read · part of <strong>Patterns for P2P apps</strong> · also readable inside the app (type <code>learn pattern-app</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>App patterns</h1>
+<p>The product-layer shapes — what makes a P2P app feel like an app instead of<br>a protocol demo.</p>
+<h2>1. Render from the local view, always</h2>
+<p>The UI reads <strong>only</strong> the local fold (<a href="/learn/hp-hyperbee.html">Hyperbee views</a>,<br>merged gossip state) — never &quot;the network&quot;. Boot offline shows everything<br>you had; peers arriving just makes it fresher. This single rule delivers<br>offline-first as a side effect and makes loading states nearly disappear:<br>the data is already here.</p>
+<h2>2. Optimistic writes with visible cost</h2>
+<p>Your own ops apply locally the instant they are minted — your post is on<br>screen before any peer has it. When writes carry proof-of-work, show the<br>mint honestly (<code>minting pow… 80ms</code>, a live counter on the submit button):<br>perceived honesty beats fake instancy, and it teaches users the spam gate<br>exists.</p>
+<h2>3. Soft refresh, never stomp input</h2>
+<p>Gossip arrives mid-keystroke. Debounce re-renders, and <strong>skip them while<br>focus is in an input</strong> — we learned to check <code>document.activeElement</code><br>before repainting, and the TUI equivalent (never redraw over compose mode).<br>Losing a half-typed comment to a refresh is the fastest way to lose a user.</p>
+<h2>4. Identity UX: keys under names</h2>
+<p>Show nicknames, resolve them from signed profile records, fall back to<br><code>anon-&lt;keyprefix&gt;</code> — and keep the real key one tap away for out-of-band<br>verification (<a href="/learn/handbook-identity.html">identity chapter</a>). Offer key<br>backup/export early; there is no recovery flow to save anyone later. For<br>dev builds: multi-identity switching (our dev user switcher) turns<br>one browser into a test network.</p>
+<h2>5. Honest status surfaces</h2>
+<p>A P2P app should always answer: how many peers, how many records, which<br>transport, is crypto real? Our web build&#39;s status chip<br>(<code>gossip-bridge · 3p · 214 recs</code>) and the TUI header<br>(<code>hot · 4 peers · tracking 12</code>) exist because trust in a serverless app<br>comes from <em>legibility</em> — including showing when you are in an insecure dev<br>fallback, loudly.</p>
+<h2>6. Moderation as user power, not platform power</h2>
+<p>Local blocks apply instantly to your own view; published blocklists let<br>others <em>opt in</em> to your curation; unsubscribing un-moderates<br>(<a href="/learn/handbook-trust.html">trust chapter</a>). The app&#39;s job is making these<br>levers visible — not deciding for anyone.</p>
+<h2>7. Ship the smallest honest surface</h2>
+<p>Our whole product history in one pattern: Reddit-shape → HN-shape cut the UI<br>by half while the data model kept boards; the GUI stalled so the TUI<br>shipped; pinned posts are a constant in a file<br>(<a href="/learn/build-terminal.html">the build article</a>). In P2P the hard risks live in<br>the protocol layer — spend UI ambition <em>after</em> the network works.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/pattern-network.html">« Network patterns: topics, gossip, validate-on-ingest</a>
+
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

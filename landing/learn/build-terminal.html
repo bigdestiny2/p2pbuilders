@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Building the terminal HN — p2pbuilders learn</title>
+<meta name="description" content="How the p2pbuilders TUI is put together: one readline loop, a backend of ops, and scope cuts that shipped it.">
+<link rel="canonical" href="https://p2pbuilders.com/learn/build-terminal.html">
+<meta property="og:title" content="Building the terminal HN — p2pbuilders learn">
+<meta property="og:description" content="How the p2pbuilders TUI is put together: one readline loop, a backend of ops, and scope cuts that shipped it.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.com/learn/build-terminal.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Building the terminal HN — p2pbuilders learn">
+<meta name="twitter:description" content="How the p2pbuilders TUI is put together: one readline loop, a backend of ops, and scope cuts that shipped it.">
+<meta name="twitter:image" content="https://p2pbuilders.com/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Building the terminal HN","description":"How the p2pbuilders TUI is put together: one readline loop, a backend of ops, and scope cuts that shipped it.","url":"https://p2pbuilders.com/learn/build-terminal.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.com"},"articleSection":"Build articles","timeRequired":"PT8M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-23","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.com/learn/"},{"@type":"ListItem","position":3,"name":"Building the terminal HN","item":"https://p2pbuilders.com/learn/build-terminal.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Build articles</nav>
+<article>
+<div class="meta">8 min read · part of <strong>Build articles</strong> · also readable inside the app (type <code>learn build-terminal</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Building the terminal HN</h1>
+<p>p2pbuilders shipped as a <strong>terminal app</strong>: <code>pear run <a href="pear://…">pear://…</a></code> drops you at<br>a <code>›</code> prompt on a live P2P board. This article is how it is built and the<br>decisions that got it out the door.</p>
+<h2>Architecture</h2>
+<p>Two halves, cleanly split:</p>
+<ul><li><strong>Backend</strong> (<code>src/backend/</code>): the Node class (Corestore + one Hypercore</li></ul>
+<p>  per identity), the op schema, PoW minting/checking, the Hyperbee indexer<br>  that folds every tracked core into hot/new/top views, reputation, rate<br>  limits, and a Hyperswarm layer with a protomux announce channel. All<br>  runtime-portable via one <code>_rt.js</code> shim (<a href="/learn/hp-bare.html">Bare walkthrough</a>).</p>
+<ul><li><strong>Terminal UI</strong> (<code>src/terminal/main.js</code>): a single readline loop over a</li></ul>
+<p>  tiny state machine — feed view, thread view, compose mode. Commands are<br>  first-word dispatch (<code>submit</code>, <code>open 3</code>, <code>up 2</code>, <code>reply</code>, …). ANSI<br>  colors and a screen-clear redraw; a debounce coalesces peer-driven<br>  refreshes so gossip storms do not flicker the screen.</p>
+<p>Everything crosses one JSON-RPC dispatch layer — the same method surface the<br>dev HTTP/WS server and the (parked) iOS pipe use. The UI cannot reach into<br>internals; every transport gets the same API.</p>
+<h2>Decisions that shipped it</h2>
+<ul><li><strong>Reddit-shaped → HN-shaped.</strong> Boards + browsable lists were most of the UI</li></ul>
+<p>  scope. One <code>front</code> feed cut it to a screen and a half of rendering; the<br>  <em>data model</em> kept the <code>board</code> field, so the pivot cost nothing on-chain.</p>
+<ul><li><strong>TUI first.</strong> The desktop GUI stack fought us (install-time timeouts), so</li></ul>
+<p>  the terminal became the product. A readline loop has no build step, runs<br>  identically under Bare and Node, and made the P2P parts — the actual hard<br>  parts — the whole job.</p>
+<ul><li><strong>Compose mode over flags.</strong> Multi-line posts arrive as a tiny modal state:</li></ul>
+<p>  type lines, <code>.</code> submits, <code>:q</code> cancels. The whole editor is ~60 lines.</p>
+<ul><li><strong>Constants over admin systems.</strong> Moderation is one <code>ADMIN_PUBKEY</code></li></ul>
+<p>  constant enforced <em>by the indexer</em> (admin tombstones are honored for any<br>  target; everyone else, own ops only). Pinned posts are a hardcoded opId<br>  list. Governance-by-recompile is honest for the current scale — the<br>  enforcement point (indexer, not UI) is what makes it real.</p>
+<h2>What it proved</h2>
+<p>41 tests cover every layer; the same backend booted under raw Bare (the iOS<br>milestone) without changes. The bet that &quot;the app is the log + the fold, the<br>UI is whatever is cheapest today&quot; — the whole premise of the<br><a href="/learn/handbook-logs.html">foundations track</a> — held.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/eco-antispam.html">« PoW + reputation: honest limits</a>
+<a rel="next" href="/learn/build-web.html">One engine, two apps: porting to the browser »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

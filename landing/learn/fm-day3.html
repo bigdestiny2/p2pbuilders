@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Day 3: UDP, TCP/IP &amp; NAT Traversal — p2pbuilders learn</title>
+<meta name="description" content="How two machines behind home routers manage to talk directly — the hardest, most-tested topic on the list.">
+<link rel="canonical" href="https://p2pbuilders.com/learn/fm-day3.html">
+<meta property="og:title" content="Day 3: UDP, TCP/IP &amp; NAT Traversal — p2pbuilders learn">
+<meta property="og:description" content="How two machines behind home routers manage to talk directly — the hardest, most-tested topic on the list.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.com/learn/fm-day3.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Day 3: UDP, TCP/IP &amp; NAT Traversal — p2pbuilders learn">
+<meta name="twitter:description" content="How two machines behind home routers manage to talk directly — the hardest, most-tested topic on the list.">
+<meta name="twitter:image" content="https://p2pbuilders.com/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Day 3: UDP, TCP/IP & NAT Traversal","description":"How two machines behind home routers manage to talk directly — the hardest, most-tested topic on the list.","url":"https://p2pbuilders.com/learn/fm-day3.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.com"},"articleSection":"The P2P Engineer's Field Manual","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-23","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.com/learn/"},{"@type":"ListItem","position":3,"name":"Day 3: UDP, TCP/IP & NAT Traversal","item":"https://p2pbuilders.com/learn/fm-day3.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › The P2P Engineer's Field Manual</nav>
+<article>
+<div class="meta">10 min read · part of <strong>The P2P Engineer's Field Manual</strong> · also readable inside the app (type <code>learn fm-day3</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Day 03: UDP, TCP/IP &amp; NAT Traversal</h1>
+<p><em>How two machines behind home routers manage to talk directly — the hardest, most-tested topic on the list.</em></p>
+<blockquote><p>⏱ ~2 hrs · theory 60 / lab 60</p></blockquote>
+<p>This is the chapter most likely to expose gaps in an interview, because it&#39;s where networking theory meets ugly<br>real-world reality. The internet was designed for every machine to have a public address; instead, billions of<br>devices hide behind <strong>NAT</strong> (Network Address Translation). P2P only works if peers can punch through<br>that. By the end of today you will have two UDP &quot;peers&quot; establishing a direct connection through a simulated<br>rendezvous server — the exact dance <code>hyperdht</code> performs.</p>
+<h2>3.1 TCP vs UDP — pick your tradeoff</h2>
+<table><thead><tr><th></th><th>TCP</th><th>UDP</th></tr></thead><tbody><tr><td>Connection</td><td>Handshake, stateful</td><td>Connectionless, fire-and-forget</td></tr><tr><td>Delivery</td><td>Reliable, ordered, retransmitted</td><td>Best-effort; may drop/reorder/dup</td></tr><tr><td>Flow/congestion control</td><td>Built in</td><td>You build it (or don&#39;t)</td></tr><tr><td>Head-of-line blocking</td><td>Yes — one lost segment stalls the stream</td><td>No — packets are independent</td></tr><tr><td>Overhead</td><td>20-byte header, ACK traffic</td><td>8-byte header</td></tr><tr><td>NAT traversal</td><td>Hard (stateful, sequence numbers)</td><td>Easier (stateless datagrams)</td></tr></tbody></table>
+<p>P2P systems lean heavily on <strong>UDP</strong> for two reasons. First, NAT hole-punching is far more reliable<br>with stateless datagrams than with TCP&#39;s handshake-and-sequence machinery. Second, head-of-line blocking: TCP<br>guarantees order, so a single lost packet stalls <em>everything</em> behind it — fatal for real-time or multiplexed<br>streams. This is exactly why QUIC (and HTTP/3) was built on UDP. The tradeoff is that you must implement whatever<br>reliability you actually need yourself, on top of UDP.</p>
+<blockquote><p>The mental model<br>TCP is a phone call: connection established, ordered conversation, you notice if the line drops. UDP is postcards:<br>cheap, independent, might arrive out of order or not at all — but you can drop one in any mailbox without setup.</p></blockquote>
+<h2>3.2 What NAT actually does</h2>
+<p>Your router owns one public IP. Every device behind it has a private IP (<code>192.168.x.x</code>). When an inside<br>device sends a packet out, the router rewrites the source <code>(private IP : port)</code> to<br><code>(public IP : some external port)</code> and records the mapping in a translation table. Replies to that<br>external port get rewritten back and forwarded inside. The problem for P2P: an <em>unsolicited</em> inbound packet<br>from a stranger has no table entry, so the router drops it. Two peers behind NATs each expect the other to &quot;call<br>first&quot; — a deadlock.</p>
+<h3>The four NAT behaviors</h3>
+<table><thead><tr><th>Type</th><th>Mapping rule</th><th>Punchable?</th></tr></thead><tbody><tr><td>Full-cone</td><td>One external port per internal socket; <em>anyone</em> can use it</td><td>Easy</td></tr><tr><td>Restricted-cone</td><td>Same port, but only hosts you&#39;ve sent to may reply</td><td>Yes</td></tr><tr><td>Port-restricted</td><td>Only the exact host:port you contacted may reply</td><td>Yes (most common case)</td></tr><tr><td>Symmetric</td><td>A <em>new</em> external port per destination — mapping is unpredictable</td><td>Hard / often needs relay</td></tr></tbody></table>
+<p>The killer is <strong>symmetric NAT</strong>: because it allocates a different external port for every<br>destination, the port a peer learns via the rendezvous server is <em>not</em> the port that will be used to reach the<br>other peer. Hole-punching relies on predicting the external mapping, and symmetric NAT breaks that prediction. This<br>is the single most important NAT fact to be able to state crisply.</p>
+<h2>3.3 UDP hole punching, step by step</h2>
+<p>Both peers can make <em>outbound</em> connections; neither can receive <em>unsolicited</em> inbound. The trick is<br>to use a mutually reachable <strong>rendezvous (signaling) server</strong> to learn each other&#39;s public mappings,<br>then both fire packets at each other <em>simultaneously</em>. Each outbound packet opens a hole in its own NAT; when<br>the other peer&#39;s packet arrives, a matching table entry already exists, so it&#39;s allowed through.</p>
+<ol><li>Peer A and Peer B each send a packet to the rendezvous server. The server observes their public <code>(IP:port)</code> mappings (this is what STUN does).</li><li>The server tells A about B&#39;s public mapping, and B about A&#39;s.</li><li>A and B both start sending UDP packets <em>directly</em> to each other&#39;s public mapping. The first packets may be dropped (no hole yet), but each one punches an outbound hole.</li><li>Once both holes exist, packets flow directly — the server is no longer involved.</li></ol>
+<h3>STUN, TURN, ICE — the standard stack</h3>
+<ul><li><strong>STUN</strong>: a server that tells you your own public mapping (&quot;what does the outside world see me as?&quot;). Cheap, the basis of step 1.</li><li><strong>TURN</strong>: a relay that forwards traffic between peers when direct punching fails (e.g. symmetric NAT on both ends). Reliable but costs bandwidth — it&#39;s the fallback, not the goal.</li><li><strong>ICE</strong>: the algorithm that gathers all candidate addresses (local, STUN-derived, TURN-relayed), tries them in priority order, and picks the best working pair. WebRTC uses ICE.</li></ul>
+<blockquote><p>Holepunch note<br><code>hyperdht</code> rolls its own version of this. The DHT itself <em>is</em> the rendezvous layer: peers announce<br>on a topic, the DHT coordinates the simultaneous-open, and a technique sometimes called &quot;UDX&quot; provides a<br>reliable-stream abstraction over UDP afterward. When you connect via <code>hyperswarm</code>, this whole sequence<br>happens under the hood. Being able to say &quot;the DHT replaces the STUN/signaling server&quot; is a strong interview answer.</p></blockquote>
+<h2>3.4 Lab — simulate UDP hole punching locally</h2>
+<hr>
+<h3>Goal</h3>
+<p>Build a rendezvous server and two peers using Node&#39;s <code>dgram</code> (UDP) module. The server introduces the<br>peers by their observed addresses; the peers then exchange packets <em>directly</em>. Running on localhost there&#39;s<br>no real NAT, but the <em>protocol logic</em> — observe address, exchange, simultaneous send — is identical to the<br>real thing.</p>
+<h3>Step 1 — the rendezvous server</h3>
+<pre><code>// rendezvous.js — learns each peer&#39;s public address and introduces them
+const dgram = require(&#39;dgram&#39;);
+const server = dgram.createSocket(&#39;udp4&#39;);
+const peers = {};
+
+server.on(&#39;message&#39;, (msg, rinfo) =&gt; {
+  const { name } = JSON.parse(msg);
+  // rinfo is the address the SERVER sees — i.e. the public mapping (STUN)
+  peers[name] = { address: rinfo.address, port: rinfo.port };
+  console.log(`registered ${name} @ ${rinfo.address}:${rinfo.port}`);
+
+  // once both peers are known, introduce them to each other
+  const names = Object.keys(peers);
+  if (names.length === 2) {
+    const [a, b] = names;
+    introduce(a, b); introduce(b, a);
+  }
+});
+
+function introduce(to, about) {
+  const payload = Buffer.from(JSON.stringify({ peer: about, addr: peers[about] }));
+  server.send(payload, peers[to].port, peers[to].address);
+}
+
+server.bind(9000, () =&gt; console.log(&#39;rendezvous on :9000&#39;));</code></pre>
+<h3>Step 2 — a peer</h3>
+<pre><code>// peer.js — usage: node peer.js &lt;myName&gt;
+const dgram = require(&#39;dgram&#39;);
+const myName = process.argv[2] || &#39;peerA&#39;;
+const sock = dgram.createSocket(&#39;udp4&#39;);
+
+const RDV = { port: 9000, host: &#39;127.0.0.1&#39; };
+let partner = null;
+let connected = false;
+
+sock.on(&#39;message&#39;, (msg, rinfo) =&gt; {
+  let data; try { data = JSON.parse(msg); } catch { data = { raw: msg.toString() }; }
+
+  // (a) introduction from the rendezvous server
+  if (data.addr) {
+    partner = data.addr;
+    console.log(`got partner ${data.peer} @ ${partner.address}:${partner.port}`);
+    startPunching();
+    return;
+  }
+  // (b) a direct packet from the partner — the hole is open!
+  if (data.hello) {
+    if (!connected) {
+      connected = true;
+      console.log(`✅ DIRECT connection established with ${data.hello}`);
+    }
+    return;
+  }
+});
+
+// punch: fire packets straight at the partner&#39;s public mapping repeatedly
+function startPunching() {
+  const timer = setInterval(() =&gt; {
+    if (connected) return clearInterval(timer);
+    const pkt = Buffer.from(JSON.stringify({ hello: myName }));
+    sock.send(pkt, partner.port, partner.address); // opens our hole + may pass theirs
+  }, 200);
+}
+
+// register with the rendezvous server on startup
+sock.send(Buffer.from(JSON.stringify({ name: myName })), RDV.port, RDV.host);
+console.log(`${myName} registering…`);</code></pre>
+<h3>Run it (three terminals)</h3>
+<pre><code># terminal 1
+node rendezvous.js
+# terminal 2
+node peer.js peerA
+# terminal 3
+node peer.js peerB</code></pre>
+<pre><code># peerA output:
+# peerA registering…
+# got partner peerB @ 127.0.0.1:53412
+# ✅ DIRECT connection established with peerB</code></pre>
+<h3>What just happened (and what&#39;s different on real NAT)</h3>
+<ul><li>The server learned each peer&#39;s address <em>as it observed it</em> — that&#39;s the STUN principle. On real NAT this is the public mapping, not the private LAN address.</li><li>Both peers fired at each other simultaneously; the repeated sends model the &quot;first packets may be dropped while the hole opens&quot; reality.</li><li>Once connected, the server is never used again — true direct P2P.</li><li>On <strong>symmetric NAT</strong>, the port the server observed would <em>not</em> match the port used peer-to-peer, so the punch fails and you&#39;d fall back to a TURN-style relay. Try simulating this by having a peer send its punch packets from a <em>different</em> socket than the one it registered with — the introduction address no longer matches and the connection never forms.</li></ul>
+<h2>3.5 Self-check &amp; interview drill</h2>
+<ul><li>I can name the four NAT types and which one defeats hole punching.</li><li>I can explain the rendezvous → observe → simultaneous-send sequence.</li><li>I can define STUN, TURN, and ICE and how <code>hyperdht</code> replaces the signaling server.</li><li>My two UDP peers established a direct connection through a rendezvous server.</li></ul>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/fm-day2.html">« Day 2: BitTorrent &amp; Hypercore</a>
+<a rel="next" href="/learn/fm-day4.html">Day 4: Binary Protocols &amp; Serialization »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

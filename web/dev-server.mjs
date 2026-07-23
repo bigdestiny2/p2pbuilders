@@ -10,7 +10,7 @@ const ROOT = fileURLToPath(new URL('.', import.meta.url)).replace(/\/$/, '')
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json' }
 const PORT = Number(process.env.PORT) || 8778
 const HOST = process.env.HOST || '127.0.0.1'
-const PUBLIC_FILES = new Set(['/index.html', '/styles.css', '/icon.svg', '/manifest.json'])
+const PUBLIC_FILES = new Set(['/index.html', '/styles.css', '/icon.svg', '/manifest.json', '/fieldmanual.html'])
 
 const isPublicPath = (p) => PUBLIC_FILES.has(p) || /^\/js\/[a-z0-9-]+\.js$/i.test(p)
 const isInsideRoot = (file) => { const rel = relative(ROOT, file); return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel)) }

@@ -4,11 +4,54 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#ff6600" />
-  <title>p2pbuilders</title>
-  <meta name="description" content="A permissionless peer-to-peer hacker news for anons who build p2p. No servers. No accounts. Run it in your terminal." />
-  <meta property="og:title" content="p2pbuilders" />
-  <meta property="og:description" content="Permissionless P2P hacker news. Anons who build peer-to-peer because freedom." />
+  <title>p2pbuilders — peer-to-peer hacker news + free P2P engineering lessons</title>
+  <meta name="description" content="A permissionless peer-to-peer hacker news for people who build P2P. No servers, no accounts — run it in your terminal. Plus 37 free lessons: Kademlia, Hypercore, NAT traversal, binary protocols, crypto and the Pear/Holepunch stack." />
+  <link rel="canonical" href="https://p2pbuilders.com/" />
+  <meta property="og:title" content="p2pbuilders — P2P hacker news + free P2P engineering school" />
+  <meta property="og:description" content="Permissionless P2P hacker news, plus 37 free lessons on building peer-to-peer software: DHTs, Hypercore, NAT traversal, Noise, profiling." />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://p2pbuilders.com/" />
+  <meta property="og:site_name" content="p2pbuilders" />
+  <meta property="og:image" content="https://p2pbuilders.com/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="p2pbuilders — P2P hacker news + free P2P engineering school" />
+  <meta name="twitter:description" content="No servers, no accounts. Run the board in your terminal; learn the whole stack free — Kademlia to profiling." />
+  <meta name="twitter:image" content="https://p2pbuilders.com/og.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "p2pbuilders",
+        "url": "https://p2pbuilders.com/",
+        "description": "A permissionless, peer-to-peer Hacker News for people who build P2P software, with a free education hub on P2P engineering.",
+        "publisher": { "@type": "Organization", "name": "p2pbuilders", "url": "https://p2pbuilders.com/", "sameAs": ["https://github.com/bigdestiny2/p2pbuilders"] }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "p2pbuilders",
+        "applicationCategory": "SocialNetworkingApplication",
+        "operatingSystem": "macOS, Linux, Windows (Pear runtime)",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "Serverless Hacker News clone on the Pear/Holepunch stack: signed append-only logs per user, proof-of-work spam gating, reputation-weighted voting, relay-pinned availability.",
+        "url": "https://p2pbuilders.com/",
+        "installUrl": "https://github.com/bigdestiny2/p2pbuilders#try-it",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0"
+      },
+      {
+        "@type": "Course",
+        "name": "The P2P Engineer's Field Manual — a 7-day crash course",
+        "description": "Distributed networking from Kademlia to production profiling: DHTs, BitTorrent & Hypercore, NAT traversal, binary protocols, cryptographic primitives, high-performance JS networking. Every day ends in a runnable lab.",
+        "provider": { "@type": "Organization", "name": "p2pbuilders", "url": "https://p2pbuilders.com/" },
+        "url": "https://p2pbuilders.com/learn/",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "hasCourseInstance": { "@type": "CourseInstance", "courseMode": "online", "courseWorkload": "PT10H" }
+      }
+    ]
+  }
+  </script>
   <style>
     :root {
       --bg:       #f6f6ef;
@@ -219,6 +262,7 @@
       <nav class="nav">
         <a href="#manifesto">manifesto</a>
         <a href="#board">board</a>
+        <a href="/learn/">learn</a>
         <a href="#join">join</a>
         <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
       </nav>
@@ -280,8 +324,49 @@
       </p>
     </section>
 
+    <section id="learn">
+      <h2><span class="num">03.</span>learn</h2>
+
+      <p>
+        the board ships with its own education hub — everything we know about
+        building peer-to-peer, readable inside the app itself:
+      </p>
+
+      <ul>
+        <li><strong>the p2p engineer's field manual</strong> — our 7-day
+          crash course: kademlia, hypercore, nat traversal, binary protocols,
+          crypto, js networking, profiling. every day ends in a runnable
+          lab.</li>
+        <li><strong>p2p foundations</strong> — keys, logs, discovery,
+          availability, trust. the ideas under everything we build.</li>
+        <li><strong>holepunch walkthroughs</strong> — hands-on tours of pear,
+          bare, hypercore, hyperbee, hyperdrive, hyperswarm, corestore and
+          autobase, with runnable code.</li>
+        <li><strong>storyteller &amp; pear baby rooms</strong> — our beginner
+          lesson tracks. baby rooms goes from zero to a live p2p room;
+          storyteller teaches app design one chapter at a time.</li>
+        <li><strong>lessons from our ecosystem</strong> — war stories from
+          running p2pbuilders, peerit and hiverelay in the wild.</li>
+        <li><strong>build articles</strong> — write-ups of the things we
+          actually shipped.</li>
+        <li><strong>patterns for p2p apps</strong> — the shapes that keep
+          working. steal them.</li>
+      </ul>
+
+      <p>
+        in the terminal app, type <code>learn</code> at the <code>›</code>
+        prompt. in the browser build it's the <code>learn</code> tab. no
+        server behind any of it — the lessons replicate peer-to-peer with the
+        app.
+      </p>
+
+      <p style="margin-top:20px">
+        <a class="cta" href="/learn/">browse all 37 lessons</a>
+      </p>
+    </section>
+
     <section id="join">
-      <h2><span class="num">03.</span>join</h2>
+      <h2><span class="num">04.</span>join</h2>
 
       <p>takes two minutes. you'll need <a href="https://nodejs.org">node.js</a> installed.</p>
 

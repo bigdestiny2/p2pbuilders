@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Day 5: Cryptographic Primitives — p2pbuilders learn</title>
+<meta name="description" content="Signatures, key exchange, AEAD, and the Noise handshake that secures every Holepunch connection.">
+<link rel="canonical" href="https://p2pbuilders.com/learn/fm-day5.html">
+<meta property="og:title" content="Day 5: Cryptographic Primitives — p2pbuilders learn">
+<meta property="og:description" content="Signatures, key exchange, AEAD, and the Noise handshake that secures every Holepunch connection.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.com/learn/fm-day5.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Day 5: Cryptographic Primitives — p2pbuilders learn">
+<meta name="twitter:description" content="Signatures, key exchange, AEAD, and the Noise handshake that secures every Holepunch connection.">
+<meta name="twitter:image" content="https://p2pbuilders.com/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Day 5: Cryptographic Primitives","description":"Signatures, key exchange, AEAD, and the Noise handshake that secures every Holepunch connection.","url":"https://p2pbuilders.com/learn/fm-day5.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.com"},"articleSection":"The P2P Engineer's Field Manual","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-23","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.com/learn/"},{"@type":"ListItem","position":3,"name":"Day 5: Cryptographic Primitives","item":"https://p2pbuilders.com/learn/fm-day5.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › The P2P Engineer's Field Manual</nav>
+<article>
+<div class="meta">10 min read · part of <strong>The P2P Engineer's Field Manual</strong> · also readable inside the app (type <code>learn fm-day5</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Day 05: Cryptographic Primitives</h1>
+<p><em>Signatures, key exchange, AEAD, and the Noise handshake that secures every Holepunch connection.</em></p>
+<blockquote><p>⏱ ~90 min · theory 50 / lab 40</p></blockquote>
+<p>In a P2P network there&#39;s no certificate authority, no trusted server, no login. Identity, integrity, and<br>confidentiality all come from cryptography applied directly between peers. You will <em>not</em> implement crypto<br>primitives yourself (rule one of applied crypto: don&#39;t roll your own), but you must understand what each primitive<br>does, why it&#39;s there, and how they compose into the <strong>Noise Protocol</strong> handshake that <code>hyperdht</code><br>uses to secure connections. Today is concept-heavy with a lab using <code>sodium-native</code>, the same library the<br>Holepunch stack relies on.</p>
+<h2>5.1 The four jobs crypto does here</h2>
+<table><thead><tr><th>Job</th><th>Primitive</th><th>Question it answers</th></tr></thead><tbody><tr><td>Identity / authenticity</td><td>Ed25519 signatures</td><td>&quot;Did the holder of this key really produce this?&quot;</td></tr><tr><td>Key agreement</td><td>X25519 (Curve25519 ECDH)</td><td>&quot;How do two strangers derive a shared secret over a public channel?&quot;</td></tr><tr><td>Confidentiality + integrity</td><td>ChaCha20-Poly1305 / AES-GCM (AEAD)</td><td>&quot;How do we encrypt so tampering is detectable?&quot;</td></tr><tr><td>Fingerprinting / commitment</td><td>BLAKE2b hashing, Merkle trees</td><td>&quot;How do we name and verify data compactly?&quot;</td></tr></tbody></table>
+<h2>5.2 Ed25519 — identity as a keypair</h2>
+<p>In Hypercore the **public key <em>is</em> the address** of a feed, and the secret key authorizes<br>appends. Ed25519 is the signature scheme behind this: fast, deterministic (no risky randomness at signing time, the<br>flaw that has broken ECDSA implementations), small keys and signatures (32 and 64 bytes). A signature proves a<br>message was produced by the holder of the secret key and hasn&#39;t been altered. This is the entire basis of &quot;single<br>writer&quot; — only one party can sign valid appends, and every reader can verify them with just the public key.</p>
+<h2>5.3 X25519 — agreeing on a secret in the open</h2>
+<p>Two peers who have never met need a shared symmetric key to encrypt their session. <strong>Diffie–Hellman</strong><br>over Curve25519 (X25519) lets each side combine its own secret with the other&#39;s public value to compute the<br><em>same</em> shared secret, while an eavesdropper who sees only the public values cannot. Using fresh<br><strong>ephemeral</strong> keypairs per session gives <strong>forward secrecy</strong>: even if a long-term key leaks<br>later, past sessions stay private because their ephemeral secrets are already gone.</p>
+<blockquote><p>Signing vs key-exchange keys<br>Ed25519 (signing) and X25519 (key exchange) are sister curves — same underlying Curve25519 math, different jobs.<br>Don&#39;t conflate them: you sign with Ed25519 to prove identity, and DH with X25519 to derive session keys.</p></blockquote>
+<h2>5.4 AEAD — encrypt and authenticate together</h2>
+<p>Plain encryption hides content but doesn&#39;t stop an attacker flipping bits. <strong>AEAD</strong> (Authenticated<br>Encryption with Associated Data) — ChaCha20-Poly1305 or AES-GCM — encrypts <em>and</em> produces an authentication<br>tag, so any tampering is detected on decryption. &quot;Associated data&quot; lets you bind unencrypted context (like a header)<br>to the ciphertext so it can&#39;t be swapped. Every byte of an established Noise session rides inside AEAD frames.</p>
+<h2>5.5 BLAKE2b and Merkle trees, revisited</h2>
+<p>You met Merkle trees on Day 2. The hash underneath them in Hypercore is <strong>BLAKE2b</strong> — faster than<br>SHA-256, with strong security margins. Hashing gives you fixed-size, collision-resistant fingerprints used for<br>content addressing, the discovery key derived from a feed&#39;s public key, and the block/tree hashes that make partial<br>replication verifiable.</p>
+<h2>5.6 The Noise Protocol Framework</h2>
+<p>Noise is a <em>framework</em> for building secure handshakes by composing the primitives above into a fixed<br>sequence of DH operations. It&#39;s what WireGuard, WhatsApp, and Holepunch&#39;s transport use. A Noise handshake is named<br>by a <strong>pattern</strong> of message tokens:</p>
+<ul><li><strong>XX</strong>: both parties exchange and authenticate static keys <em>during</em> the handshake. Mutual authentication without either side knowing the other&#39;s key in advance — the general-purpose default.</li><li><strong>IK</strong>: the initiator already knows the responder&#39;s static key (e.g. you&#39;re dialing a specific peer whose public key you looked up in the DHT). Faster, fewer round trips, and hides the initiator&#39;s identity from passive eavesdroppers.</li><li><strong>NK / NN / KK …</strong>: other combinations of who-knows-what ahead of time.</li></ul>
+<p>Each handshake message mixes new DH outputs into a running shared state; by the end both sides have derived<br>matching symmetric keys for an AEAD-encrypted session with forward secrecy. The elegance is that the <em>pattern</em><br>declares the security properties, and the framework guarantees them.</p>
+<blockquote><p>Holepunch note<br>When you connect through <code>hyperdht</code>/<code>hyperswarm</code>, the peers run a Noise handshake (an<br><strong>IK</strong>-style pattern fits the &quot;I looked up your key in the DHT, now I&#39;m dialing you&quot; model) to<br>authenticate and establish an encrypted, forward-secret channel — <em>before</em> any application data flows. The<br>primitives are Ed25519/X25519/BLAKE2b/ChaCha20-Poly1305 via <code>sodium-native</code>. Being able to say &quot;Noise IK,<br>because the dialer already has the responder&#39;s static key from the DHT lookup&quot; is a top-tier interview answer.</p></blockquote>
+<h2>5.7 Lab — signatures, key exchange, AEAD, and a mini DH handshake</h2>
+<hr>
+<h3>Goal</h3>
+<p>Use real, production primitives to (1) sign and verify like a Hypercore writer, (2) perform an X25519 key<br>exchange and confirm both sides derive the same secret, (3) AEAD-encrypt with tamper detection, and (4) sketch the<br>shape of a Noise-style handshake.</p>
+<h3>Setup</h3>
+<pre><code>npm install sodium-native</code></pre>
+<p><code>sodium-native</code> is libsodium bindings — the exact crypto layer under Hypercore. (If it fails to build<br>in your environment, Node&#39;s built-in <code>crypto</code> also supports Ed25519/X25519; the concepts are identical.)</p>
+<h3>Step 1 — Ed25519 sign &amp; verify (the &quot;single writer&quot; proof)</h3>
+<pre><code>// sign.js
+const sodium = require(&#39;sodium-native&#39;);
+
+// generate a signing keypair
+const pk = Buffer.alloc(sodium.crypto_sign_PUBLICKEYBYTES); // 32
+const sk = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES); // 64
+sodium.crypto_sign_keypair(pk, sk);
+
+const message = Buffer.from(&#39;append: block #42&#39;);
+const sig = Buffer.alloc(sodium.crypto_sign_BYTES);   // 64
+sodium.crypto_sign_detached(sig, message, sk);
+
+const ok = sodium.crypto_sign_verify_detached(sig, message, pk);
+console.log(&#39;signature valid:&#39;, ok);
+
+// tamper -&gt; verification fails (integrity + authenticity)
+const forged = Buffer.from(&#39;append: block #43&#39;);
+console.log(&#39;forged valid  :&#39;, sodium.crypto_sign_verify_detached(sig, forged, pk));</code></pre>
+<h3>Step 2 — X25519 key exchange (two strangers, one secret)</h3>
+<pre><code>// dh.js
+const sodium = require(&#39;sodium-native&#39;);
+
+function keypair() {
+  const pk = Buffer.alloc(sodium.crypto_kx_PUBLICKEYBYTES);
+  const sk = Buffer.alloc(sodium.crypto_kx_SECRETKEYBYTES);
+  sodium.crypto_kx_keypair(pk, sk);
+  return { pk, sk };
+}
+
+const alice = keypair();
+const bob = keypair();
+
+// each derives session keys from own secret + peer&#39;s public key
+const aRx = Buffer.alloc(sodium.crypto_kx_SESSIONKEYBYTES);
+const aTx = Buffer.alloc(sodium.crypto_kx_SESSIONKEYBYTES);
+const bRx = Buffer.alloc(sodium.crypto_kx_SESSIONKEYBYTES);
+const bTx = Buffer.alloc(sodium.crypto_kx_SESSIONKEYBYTES);
+
+sodium.crypto_kx_client_session_keys(aRx, aTx, alice.pk, alice.sk, bob.pk);
+sodium.crypto_kx_server_session_keys(bRx, bTx, bob.pk, bob.sk, alice.pk);
+
+// alice&#39;s TX key == bob&#39;s RX key  -&gt; shared secret agreed over a public channel
+console.log(&#39;keys match:&#39;, aTx.equals(bRx) &amp;&amp; bTx.equals(aRx));</code></pre>
+<h3>Step 3 — AEAD encryption with tamper detection</h3>
+<pre><code>// aead.js
+const sodium = require(&#39;sodium-native&#39;);
+
+const key = Buffer.alloc(sodium.crypto_aead_chacha20poly1305_ietf_KEYBYTES);
+sodium.randombytes_buf(key);
+const nonce = Buffer.alloc(sodium.crypto_aead_chacha20poly1305_ietf_NPUBBYTES);
+sodium.randombytes_buf(nonce); // MUST be unique per message under a key
+
+const plaintext = Buffer.from(&#39;secret peer payload&#39;);
+const ad = Buffer.from(&#39;msg-type:3&#39;); // associated data: authenticated, not encrypted
+const ct = Buffer.alloc(plaintext.length + sodium.crypto_aead_chacha20poly1305_ietf_ABYTES);
+
+sodium.crypto_aead_chacha20poly1305_ietf_encrypt(ct, plaintext, ad, null, nonce, key);
+
+const out = Buffer.alloc(ct.length - sodium.crypto_aead_chacha20poly1305_ietf_ABYTES);
+sodium.crypto_aead_chacha20poly1305_ietf_decrypt(out, null, ct, ad, nonce, key);
+console.log(&#39;decrypted:&#39;, out.toString());
+
+// flip one ciphertext byte -&gt; decrypt throws (the Poly1305 tag fails)
+ct[0] ^= 0xff;
+try {
+  sodium.crypto_aead_chacha20poly1305_ietf_decrypt(out, null, ct, ad, nonce, key);
+  console.log(&#39;tamper undetected (BAD)&#39;);
+} catch {
+  console.log(&#39;tamper detected: decryption rejected ✅&#39;);
+}</code></pre>
+<h3>Step 4 — sketch a Noise-style handshake</h3>
+<p>This is a <em>conceptual</em> 2-message exchange (not a spec-compliant Noise impl) to show how DH + hashing<br>compose into a session. Each side mixes ephemeral DH output into a running hash to derive a shared key.</p>
+<pre><code>// mini-noise.js — illustrative only; use the &#39;noise-protocol&#39; / hyperswarm libs for real
+const sodium = require(&#39;sodium-native&#39;);
+const hash = (b) =&gt; { const o = Buffer.alloc(32); sodium.crypto_generichash(o, b); return o; };
+
+function eph() {
+  const pk = Buffer.alloc(32), sk = Buffer.alloc(32);
+  sodium.crypto_box_keypair(pk, sk); return { pk, sk };
+}
+function dh(sk, pk) {
+  const out = Buffer.alloc(32);
+  sodium.crypto_scalarmult(out, sk, pk); return out;
+}
+
+const i = eph(), r = eph();        // initiator + responder ephemerals
+// -&gt; e   : initiator sends its ephemeral public key
+// &lt;- e   : responder sends its ephemeral public key
+// both compute the same DH(e_i, e_r) and mix it into a session key
+const kI = hash(dh(i.sk, r.pk));
+const kR = hash(dh(r.sk, i.pk));
+console.log(&#39;handshake keys match:&#39;, kI.equals(kR));
+console.log(&#39;(real Noise also mixes static keys + transcript hash for auth)&#39;);</code></pre>
+<h3>Experiments</h3>
+<ul><li>In Step 3, reuse the same nonce for two messages. Crypto won&#39;t error, but you&#39;ve just broken the cipher&#39;s security — this is why nonce management is the #1 AEAD footgun. Note how real protocols derive per-message nonces from a counter.</li><li>In Step 4, generate <em>fresh</em> ephemerals each run and confirm the derived key changes every time — that&#39;s forward secrecy in action.</li><li>Look up the <code>noise-protocol</code> npm package and identify which functions correspond to the XX vs IK patterns.</li></ul>
+<h2>5.8 Self-check &amp; interview drill</h2>
+<ul><li>I can map each primitive (Ed25519, X25519, AEAD, BLAKE2b) to the job it does.</li><li>I signed and verified a message and watched a forged one fail.</li><li>I ran an X25519 exchange and confirmed both sides derived the same secret.</li><li>I can explain Noise patterns and why IK suits DHT-based dialing.</li></ul>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/fm-day4.html">« Day 4: Binary Protocols &amp; Serialization</a>
+<a rel="next" href="/learn/fm-day6.html">Day 6: High-Performance JS Networking »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

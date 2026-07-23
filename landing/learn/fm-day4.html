@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Day 4: Binary Protocols &amp; Serialization — p2pbuilders learn</title>
+<meta name="description" content="Why every serious P2P system hand-rolls its bytes — framing, varints, and zero-copy formats.">
+<link rel="canonical" href="https://p2pbuilders.com/learn/fm-day4.html">
+<meta property="og:title" content="Day 4: Binary Protocols &amp; Serialization — p2pbuilders learn">
+<meta property="og:description" content="Why every serious P2P system hand-rolls its bytes — framing, varints, and zero-copy formats.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.com/learn/fm-day4.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Day 4: Binary Protocols &amp; Serialization — p2pbuilders learn">
+<meta name="twitter:description" content="Why every serious P2P system hand-rolls its bytes — framing, varints, and zero-copy formats.">
+<meta name="twitter:image" content="https://p2pbuilders.com/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Day 4: Binary Protocols & Serialization","description":"Why every serious P2P system hand-rolls its bytes — framing, varints, and zero-copy formats.","url":"https://p2pbuilders.com/learn/fm-day4.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.com"},"articleSection":"The P2P Engineer's Field Manual","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-23","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.com/learn/"},{"@type":"ListItem","position":3,"name":"Day 4: Binary Protocols & Serialization","item":"https://p2pbuilders.com/learn/fm-day4.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › The P2P Engineer's Field Manual</nav>
+<article>
+<div class="meta">10 min read · part of <strong>The P2P Engineer's Field Manual</strong> · also readable inside the app (type <code>learn fm-day4</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Day 04: Binary Protocols &amp; Serialization</h1>
+<p><em>Why every serious P2P system hand-rolls its bytes — framing, varints, and zero-copy formats.</em></p>
+<blockquote><p>⏱ ~90 min · theory 45 / lab 45</p></blockquote>
+<p>JSON is wonderful for humans and terrible for hot networking paths. It&#39;s bulky, slow to parse, ambiguous about<br>number types, and forces you to allocate strings for everything. P2P protocols move millions of small messages, so<br>they encode data as tight <strong>binary</strong>. Today you&#39;ll learn how messages are <em>framed</em> on a stream,<br>how integers are packed with <strong>varints</strong>, and how the major serialization formats trade off — then<br>hand-write an encoder/decoder, which is exactly the kind of thing you may be asked to live-code.</p>
+<h2>4.1 Why binary beats JSON on the wire</h2>
+<table><thead><tr><th>Concern</th><th>JSON</th><th>Binary</th></tr></thead><tbody><tr><td>Size</td><td><code>{&quot;id&quot;:1000000}</code> = 15 bytes</td><td>varint = 3 bytes</td></tr><tr><td>Parse cost</td><td>Tokenize text, allocate strings</td><td>Read fixed offsets / shift bits</td></tr><tr><td>Number fidelity</td><td>All numbers are float64; no int64</td><td>Exact integer widths</td></tr><tr><td>Schema</td><td>Self-describing (keys repeated every message)</td><td>Schema known by both sides; no key overhead</td></tr></tbody></table>
+<p>The self-describing nature of JSON is its biggest cost at scale: every message re-sends the field names. Binary<br>protocols agree on a schema once, then send only values in a known order.</p>
+<h2>4.2 Framing: where does a message end?</h2>
+<p>TCP and UDX give you a <em>stream of bytes</em>, not messages. If you write two messages, the reader may receive<br>them glued together, or split across two reads. You must impose <strong>framing</strong>. Two common approaches:</p>
+<ul><li><strong>Delimiter-based:</strong> end each message with a sentinel byte (e.g. newline). Simple, but you must escape the delimiter if it can appear in the payload — awkward for binary data.</li><li><strong>Length-prefix:</strong> write the message length first, then the bytes. The reader reads the length, then knows exactly how many bytes to consume. This is the standard for binary protocols and what you&#39;ll build.</li></ul>
+<blockquote><p>The framing bug everyone hits once<br>Forgetting that a single <code>&#39;data&#39;</code> event can contain <em>part</em> of a message, <em>multiple</em><br>messages, or a message <em>plus part of the next</em>. A correct length-prefix reader buffers incoming bytes and<br>emits messages only when a full frame has arrived. Get this wrong and your protocol works in tests and corrupts<br>under load.</p></blockquote>
+<h2>4.3 Varints: integers that earn their bytes</h2>
+<p>Most integers in real protocols are small (lengths, counts, indices). Spending 4 or 8 fixed bytes on a value of<br><code>5</code> is wasteful. A <strong>varint</strong> (LEB128, as used by Protobuf, WebAssembly, and Holepunch&#39;s<br><code>compact-encoding</code>) encodes an integer in a variable number of bytes: 7 bits of value per byte, with the<br>high bit as a &quot;more bytes follow&quot; continuation flag.</p>
+<ul><li>Values 0–127 → 1 byte</li><li>128–16383 → 2 bytes</li><li>…7 more bits per additional byte</li></ul>
+<p>So small numbers cost one byte, and you only pay for big numbers when you actually use them. This is the single<br>most common trick in compact wire formats.</p>
+<h2>4.4 The serialization landscape</h2>
+<table><thead><tr><th>Format</th><th>Shape</th><th>Notes</th></tr></thead><tbody><tr><td><strong>Protocol Buffers</strong></td><td>Schema (.proto), varint-based</td><td>Compact, fast, ubiquitous; needs codegen. Tag-length-value fields.</td></tr><tr><td><strong>MessagePack</strong></td><td>Schemaless, JSON-shaped</td><td>&quot;Binary JSON&quot; — drop-in for JSON, self-describing, no schema needed.</td></tr><tr><td><strong>Cap&#39;n Proto</strong></td><td>Schema, zero-copy</td><td>Memory layout <em>is</em> the wire format; &quot;infinitely faster&quot; — no parse step.</td></tr><tr><td><strong>FlatBuffers</strong></td><td>Schema, zero-copy</td><td>Access fields without unpacking the whole buffer; great for large messages read partially.</td></tr><tr><td><strong>compact-encoding</strong></td><td>Hand-composed codecs</td><td>Holepunch&#39;s lib: tiny, explicit, varint-first. You compose encoders by hand.</td></tr></tbody></table>
+<p>The key conceptual split: <strong>parse-based</strong> formats (Protobuf, MessagePack) decode bytes into new<br>in-memory objects, while <strong>zero-copy</strong> formats (Cap&#39;n Proto, FlatBuffers) let you read fields directly<br>out of the received buffer with no allocation or decode pass. Zero-copy wins when messages are large or you only<br>read a few fields; parse-based is simpler and fine for small messages. <code>compact-encoding</code> sits in the<br>parse-based camp but is deliberately minimal and gives you total control — which is why it suits a P2P stack where<br>every byte and allocation counts.</p>
+<h2>4.5 Lab — hand-write a length-prefixed varint protocol</h2>
+<hr>
+<h3>Goal</h3>
+<p>Implement varint encode/decode, then a length-prefixed framer that correctly reassembles messages from an<br>arbitrarily-chunked byte stream. Finish by encoding a structured message by hand. Then compare against real<br><code>compact-encoding</code>.</p>
+<h3>Step 1 — varints</h3>
+<pre><code>// varint.js
+function encodeVarint(value) {
+  const bytes = [];
+  while (value &gt; 0x7f) {            // while more than 7 bits remain
+    bytes.push((value &amp; 0x7f) | 0x80); // low 7 bits + continuation flag
+    value = Math.floor(value / 128);  // &gt;&gt;&gt; 7 but safe past 32 bits
+  }
+  bytes.push(value &amp; 0x7f);            // final byte, no continuation
+  return Buffer.from(bytes);
+}
+
+function decodeVarint(buf, offset = 0) {
+  let result = 0, shift = 0, pos = offset;
+  while (true) {
+    const byte = buf[pos++];
+    result += (byte &amp; 0x7f) * Math.pow(2, shift);
+    if ((byte &amp; 0x80) === 0) break;  // continuation bit clear -&gt; done
+    shift += 7;
+  }
+  return { value: result, bytesRead: pos - offset };
+}
+
+// sanity
+for (const v of [0, 1, 127, 128, 300, 1000000]) {
+  const enc = encodeVarint(v);
+  const dec = decodeVarint(enc).value;
+  console.log(v, &#39;-&gt;&#39;, [...enc], `(${enc.length} bytes) -&gt;`, dec);
+}
+module.exports = { encodeVarint, decodeVarint };</code></pre>
+<pre><code>node varint.js
+// 0 -&gt; [0] (1 bytes) -&gt; 0
+// 127 -&gt; [127] (1 bytes) -&gt; 127
+// 128 -&gt; [128,1] (2 bytes) -&gt; 128
+// 300 -&gt; [172,2] (2 bytes) -&gt; 300
+// 1000000 -&gt; [192,132,61] (3 bytes) -&gt; 1000000   &lt;- vs 15 bytes as JSON</code></pre>
+<h3>Step 2 — a correct length-prefixed framer</h3>
+<p>This is the part interviewers love, because the naive version is subtly broken. The framer buffers raw bytes and<br>only emits a message when a complete frame is present — handling split <em>and</em> coalesced reads.</p>
+<pre><code>// framer.js
+const { encodeVarint, decodeVarint } = require(&#39;./varint&#39;);
+const EventEmitter = require(&#39;events&#39;);
+
+function frame(payload) {
+  const len = encodeVarint(payload.length);
+  return Buffer.concat([len, payload]); // [varint length][payload bytes]
+}
+
+class Decoder extends EventEmitter {
+  constructor() { super(); this.buf = Buffer.alloc(0); }
+  push(chunk) {
+    this.buf = Buffer.concat([this.buf, chunk]); // accumulate
+    while (this.buf.length &gt; 0) {
+      let header;
+      try { header = decodeVarint(this.buf, 0); }
+      catch { return; }                       // length not fully arrived
+      const total = header.bytesRead + header.value;
+      if (this.buf.length &lt; total) return;     // full frame not here yet — wait
+      const payload = this.buf.subarray(header.bytesRead, total);
+      this.emit(&#39;message&#39;, Buffer.from(payload));
+      this.buf = this.buf.subarray(total);   // keep the remainder
+    }
+  }
+}
+module.exports = { frame, Decoder };</code></pre>
+<h3>Step 3 — prove it survives evil chunking</h3>
+<pre><code>// test-framer.js
+const { frame, Decoder } = require(&#39;./framer&#39;);
+
+const messages = [&#39;hello&#39;, &#39;a&#39;, &#39;a much longer message here&#39;, &#39;last&#39;]
+  .map(s =&gt; Buffer.from(s));
+const stream = Buffer.concat(messages.map(frame)); // all frames glued together
+
+const dec = new Decoder();
+const out = [];
+dec.on(&#39;message&#39;, m =&gt; out.push(m.toString()));
+
+// feed the stream in deliberately awful 3-byte chunks
+for (let i = 0; i &lt; stream.length; i += 3)
+  dec.push(stream.subarray(i, i + 3));
+
+console.log(out);
+// [ &#39;hello&#39;, &#39;a&#39;, &#39;a much longer message here&#39;, &#39;last&#39; ]  ✅ reassembled perfectly</code></pre>
+<h3>Step 4 — encode a structured message by hand</h3>
+<p>A &quot;peer announce&quot; message: a 1-byte type tag, a varint topic length + topic bytes, and a fixed 6-byte address<br>(4-byte IPv4 + 2-byte port).</p>
+<pre><code>// announce.js
+const { encodeVarint, decodeVarint } = require(&#39;./varint&#39;);
+const TYPE_ANNOUNCE = 0x01;
+
+function encodeAnnounce({ topic, ip, port }) {
+  const topicBuf = Buffer.from(topic);
+  const addr = Buffer.alloc(6);
+  ip.split(&#39;.&#39;).forEach((o, i) =&gt; addr[i] = Number(o));
+  addr.writeUInt16BE(port, 4); // big-endian = network byte order
+  return Buffer.concat([
+    Buffer.from([TYPE_ANNOUNCE]),
+    encodeVarint(topicBuf.length), topicBuf,
+    addr
+  ]);
+}
+
+function decodeAnnounce(buf) {
+  let off = 0;
+  const type = buf[off++];
+  const { value: tlen, bytesRead } = decodeVarint(buf, off); off += bytesRead;
+  const topic = buf.subarray(off, off + tlen).toString(); off += tlen;
+  const ip = [...buf.subarray(off, off + 4)].join(&#39;.&#39;); off += 4;
+  const port = buf.readUInt16BE(off);
+  return { type, topic, ip, port };
+}
+
+const wire = encodeAnnounce({ topic: &#39;chat-room-42&#39;, ip: &#39;192.168.1.50&#39;, port: 9000 });
+console.log(&#39;bytes :&#39;, wire.length, [...wire]);
+console.log(&#39;decoded:&#39;, decodeAnnounce(wire));</code></pre>
+<h3>Step 5 — the real thing: <code>compact-encoding</code></h3>
+<pre><code>npm install compact-encoding</code></pre>
+<pre><code>// ce.js
+const c = require(&#39;compact-encoding&#39;);
+
+// compose a struct codec from primitives
+const announce = {
+  preencode(state, m) {     // pass 1: measure
+    c.string.preencode(state, m.topic);
+    c.uint16.preencode(state, m.port);
+  },
+  encode(state, m) {        // pass 2: write
+    c.string.encode(state, m.topic);
+    c.uint16.encode(state, m.port);
+  },
+  decode(state) {
+    return { topic: c.string.decode(state), port: c.uint16.decode(state) };
+  }
+};
+
+const buf = c.encode(announce, { topic: &#39;chat-room-42&#39;, port: 9000 });
+console.log(&#39;compact bytes:&#39;, buf.length, [...buf]);
+console.log(&#39;decoded      :&#39;, c.decode(announce, buf));</code></pre>
+<p>Notice the <strong>two-pass</strong> design: <code>preencode</code> computes the exact size so <code>encode</code><br>can write into a single pre-allocated buffer with no resizing — an allocation optimization you&#39;ll revisit on Day 6.</p>
+<h3>Experiments</h3>
+<ul><li>Change the test framer chunk size to 1 byte, then to 1000. Both must produce identical output — that&#39;s the definition of correct framing.</li><li>Compare your hand-rolled announce size against the equivalent JSON string. Measure the ratio.</li><li>Add a malformed frame (a length prefix larger than the data that ever arrives) and confirm the decoder simply waits rather than crashing or emitting garbage.</li></ul>
+<h2>4.6 Self-check &amp; interview drill</h2>
+<ul><li>I can encode and decode a varint and explain its byte-size curve.</li><li>I can implement a length-prefix framer that survives split and coalesced reads.</li><li>I can hand-encode a structured message with mixed fixed and variable fields.</li><li>I understand <code>compact-encoding</code>&#39;s two-pass preencode/encode design.</li></ul>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/fm-day3.html">« Day 3: UDP, TCP/IP &amp; NAT Traversal</a>
+<a rel="next" href="/learn/fm-day5.html">Day 5: Cryptographic Primitives »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

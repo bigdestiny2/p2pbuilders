@@ -56,6 +56,14 @@ The whole app is keyboard-driven from the `›` prompt. Type `help` any time to 
 | `.` | submit — on its own line |
 | `:q` | cancel |
 
+**Learn (education hub)**
+
+| command | what it does |
+| --- | --- |
+| `learn` | browse the education hub — handbook, walkthroughs, lessons |
+| `learn <n>` | read lesson #n |
+| `learn <id>` | read a lesson by id (e.g. `learn hp-hypercore`) |
+
 **Moderation**
 
 | command | what it does |
@@ -74,6 +82,38 @@ The whole app is keyboard-driven from the `›` prompt. Type `help` any time to 
 | `quit` / `q` | exit |
 
 > Posts and comments carry a small proof-of-work (~80ms / ~20ms), so there's a brief `minting pow…` pause before they land. That's normal.
+
+## Learn — the education hub
+
+p2pbuilders ships with a built-in **Learn hub**: 37 lessons across seven tracks,
+readable in the terminal app (`learn` at the `›` prompt) and in the browser
+build (the **learn** tab, `#/learn`).
+
+| track | what's in it |
+| --- | --- |
+| **The P2P Engineer's Field Manual** | our 7-day crash course — Kademlia, Hypercore, NAT traversal, binary protocols, crypto, JS networking, profiling; every day ends in a runnable lab (designed edition: [`web/fieldmanual.html`](web/fieldmanual.html)) |
+| **P2P Foundations** | the ideas under everything — keys, logs, discovery, availability, trust |
+| **Holepunch walkthroughs** | hands-on tours of Pear, Bare, Hypercore, Hyperbee, Hyperdrive, Hyperswarm, Corestore, Autobase — with runnable code |
+| **Storyteller & Pear Baby Rooms** | our beginner lesson tracks: from zero to a live P2P room, then app design chapter by chapter |
+| **Lessons from our ecosystem** | war stories from running p2pbuilders, peerit and HiveRelay (transport authority, orphaned outboxes, the blobs-core incident, anti-spam math) |
+| **Build articles** | write-ups of builds we shipped: the terminal HN, the browser port, the relay fleet |
+| **Patterns for P2P apps** | the data, network and app-layer shapes that keep working |
+
+All content lives in one shared module — [`web/js/learn-content.js`](web/js/learn-content.js)
+(plus the generated [`web/js/fieldmanual-content.js`](web/js/fieldmanual-content.js)) —
+so both apps stay in sync; the lessons replicate peer-to-peer with the app
+(no server behind them). Validate content changes with `cd web && node test/learn.mjs`.
+
+**SEO / LLM mirror** — the hash-routed P2P app is invisible to crawlers, so the
+landing site carries a static mirror of the whole hub: one HTML page per lesson
+under [`landing/learn/`](landing/learn/) with canonical URLs, Open Graph tags and
+JSON-LD, plus `sitemap.xml`, `robots.txt`, and [`llms.txt`](landing/llms.txt) /
+`llms-full.txt` (the llms.txt convention — the full corpus in one markdown file
+for AI crawlers). After editing lesson content, regenerate and commit:
+
+```
+node scripts/build-landing-learn.mjs   # BASE_URL=https://… to override the domain
+```
 
 ## What's in here
 
@@ -203,5 +243,5 @@ engine. Same permissionless model: **proof-of-work** spam gating,
 subscribable blocklists. See [`web/README.md`](web/README.md).
 
 - Run locally: `cd web && node dev-server.mjs` → http://localhost:8778
-- Tests: `cd web && node test/engine.mjs`
+- Tests: `cd web && node test/engine.mjs && node test/learn.mjs`
 - Live: `hyper://ac1977a75cc84b46af0af8bb559cd4ebbe10507eb0f51d863e289d09635f6d74/` (open in PearBrowser)

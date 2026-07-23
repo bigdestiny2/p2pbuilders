@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Hyperdrive: a filesystem on two cores — p2pbuilders learn</title>
+<meta name="description" content="P2P file trees — how drives really store bytes, and the operational trap that follows.">
+<link rel="canonical" href="https://p2pbuilders.com/learn/hp-hyperdrive.html">
+<meta property="og:title" content="Hyperdrive: a filesystem on two cores — p2pbuilders learn">
+<meta property="og:description" content="P2P file trees — how drives really store bytes, and the operational trap that follows.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.com/learn/hp-hyperdrive.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hyperdrive: a filesystem on two cores — p2pbuilders learn">
+<meta name="twitter:description" content="P2P file trees — how drives really store bytes, and the operational trap that follows.">
+<meta name="twitter:image" content="https://p2pbuilders.com/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Hyperdrive: a filesystem on two cores","description":"P2P file trees — how drives really store bytes, and the operational trap that follows.","url":"https://p2pbuilders.com/learn/hp-hyperdrive.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.com"},"articleSection":"Holepunch walkthroughs","timeRequired":"PT7M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.com","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-23","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.com/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.com/learn/"},{"@type":"ListItem","position":3,"name":"Hyperdrive: a filesystem on two cores","item":"https://p2pbuilders.com/learn/hp-hyperdrive.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Holepunch walkthroughs</nav>
+<article>
+<div class="meta">7 min read · part of <strong>Holepunch walkthroughs</strong> · also readable inside the app (type <code>learn hp-hyperdrive</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Hyperdrive: a filesystem on two cores</h1>
+<p><a href="https://github.com/holepunchto/hyperdrive" target="_blank" rel="noopener noreferrer nofollow">Hyperdrive</a> gives you a<br>versioned file tree you can replicate like everything else. It is how Pear<br>apps ship and how P2P sites (this app&#39;s web build included) are hosted.</p>
+<pre><code>const Corestore = require(&#39;corestore&#39;)
+const Hyperdrive = require(&#39;hyperdrive&#39;)
+
+const drive = new Hyperdrive(new Corestore(&#39;./storage&#39;))
+await drive.ready()
+
+await drive.put(&#39;/index.html&#39;, Buffer.from(&#39;&lt;h1&gt;hi&lt;/h1&gt;&#39;))
+const buf = await drive.get(&#39;/index.html&#39;)
+for await (const entry of drive.list(&#39;/&#39;)) console.log(entry.key)
+
+console.log(drive.key.toString(&#39;hex&#39;))   // share this — hyper://&lt;key&gt;/</code></pre>
+<p>A reader opens the same drive by key, replicates over swarm connections, and<br>reads files sparsely — a 2GB drive costs a reader only the files they touch.<br>Drives are versioned; <code>drive.checkout(n)</code> gives you an old snapshot.</p>
+<h2>The part everyone misses</h2>
+<p><strong>A Hyperdrive is two Hypercores.</strong></p>
+<ol><li>A <strong>metadata core</strong> — a <a href="/learn/hp-hyperbee.html">Hyperbee</a> mapping paths to</li></ol>
+<p>   entries.</p>
+<ol><li>A <strong>content (blobs) core</strong> — the actual file bytes.</li></ol>
+<p><code>drive.key</code> is the <em>metadata</em> key. Anything that pins &quot;the drive by key&quot; —<br>a relay, a mirror script — may replicate metadata and never fetch the bytes.<br>The drive looks alive (listings work!) but every read fails once the<br>publisher goes offline.</p>
+<pre><code>const blobs = await drive.getBlobs()
+console.log(blobs.core.key.toString(&#39;hex&#39;))   // pin THIS too</code></pre>
+<p>We shipped that bug and wrote it up:<br><a href="/learn/eco-blobs.html">Seed the blobs core, not just the metadata</a>. If you host<br>anything on drives, read it.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/hp-hyperbee.html">« Hyperbee: a database on a log</a>
+<a rel="next" href="/learn/hp-hyperswarm.html">Hyperswarm: find peers by topic »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

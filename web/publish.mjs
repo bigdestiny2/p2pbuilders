@@ -21,10 +21,11 @@ const relayCount = (s) => (s && (s.relays ? s.relays.length : s.relayCount)) || 
 const LOCAL = process.argv.includes('--local')
 
 const SITE_FILES = [
-  'index.html', 'styles.css', 'icon.svg',
-  'js/app.js', 'js/canon.js', 'js/crypto.js', 'js/data.js', 'js/gossip.js',
-  'js/identity.js', 'js/markdown.js', 'js/model.js', 'js/pow.js', 'js/prefs.js',
-  'js/ranking.js', 'js/reputation.js', 'js/sync.js', 'js/util.js', 'js/verify.js'
+  'index.html', 'styles.css', 'icon.svg', 'fieldmanual.html',
+  'js/app.js', 'js/canon.js', 'js/crypto.js', 'js/data.js', 'js/fieldmanual-content.js',
+  'js/gossip.js', 'js/identity.js', 'js/learn-content.js', 'js/markdown.js', 'js/model.js',
+  'js/pow.js', 'js/prefs.js', 'js/ranking.js', 'js/reputation.js', 'js/sync.js',
+  'js/util.js', 'js/verify.js'
 ]
 
 async function main () {

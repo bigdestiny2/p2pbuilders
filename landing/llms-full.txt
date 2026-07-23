@@ -1,0 +1,3280 @@
+# p2pbuilders — the complete Learn corpus
+
+> 37 lessons on peer-to-peer engineering from the p2pbuilders
+> project (https://p2pbuilders.com). License: Apache-2.0. Attribution appreciated:
+> link to https://p2pbuilders.com/learn/ when quoting.
+
+
+---
+
+# SECTION: The P2P Engineer's Field Manual
+
+Our 7-day crash course — DHTs and Kademlia to hand-written binary protocols, NAT traversal, Noise handshakes and profiler flame graphs. Every day ends in a runnable lab.
+
+---
+
+<!-- lesson: fm-syllabus · https://p2pbuilders.com/learn/fm-syllabus.html -->
+
+# The P2P Engineer’s Field Manual
+
+*A 7-day engineering crash course — distributed networking, from Kademlia to production profiling.*
+
+Seven focused chapters — one per day, ninety minutes each — taking you from
+DHT theory to hand-written binary protocols, NAT traversal, Noise handshakes, and the profiler
+flame graphs that prove your optimizations actually worked. Every chapter ends in a runnable lab.
+
+**Format:** 7 chapters · 1–2 hrs each · **Stack:** Node.js · Holepunch ecosystem · **Prereq:** working JavaScript
+
+## Syllabus
+
+- **[Day 1: Distributed Hash Tables & Kademlia](#/learn/fm-day1)** — the XOR metric that organizes the swarm
+- **[Day 2: BitTorrent & Hypercore](#/learn/fm-day2)** — swarms, incentives, and append-only logs
+- **[Day 3: UDP, TCP/IP & NAT Traversal](#/learn/fm-day3)** — how peers behind routers actually connect
+- **[Day 4: Binary Protocols & Serialization](#/learn/fm-day4)** — framing, varints, zero-copy formats
+- **[Day 5: Cryptographic Primitives](#/learn/fm-day5)** — Ed25519, Noise, AEAD, Merkle trees
+- **[Day 6: High-Performance JS Networking](#/learn/fm-day6)** — buffers, backpressure, the event loop
+- **[Day 7: Profiling, Optimization & Integration](#/learn/fm-day7)** — flame graphs and the capstone build
+
+Each day ends in a runnable lab. Do them in order — every chapter leans on the one before it.
+
+---
+
+<!-- lesson: fm-day1 · https://p2pbuilders.com/learn/fm-day1.html -->
+
+# Day 01: Distributed Hash Tables & Kademlia
+
+*The XOR metric that quietly organizes every modern swarm.*
+
+> ⏱ ~90 min · theory 45 / lab 45
+
+Almost everything else in this manual sits on top of one idea: a **distributed hash table**.
+A DHT lets thousands of machines, none of which trust or even know each other, collectively behave like
+one giant key–value store — with no server, no central index, and no single point of failure. When you
+ask the network "who has the data for key `K`?", the lookup converges on the answer in roughly
+`log₂(N)` hops even across millions of nodes. Kademlia is the design that made this practical,
+and it is the ancestor of the BitTorrent DHT, IPFS, Ethereum's discovery layer, and Holepunch's
+`hyperdht`.
+
+## 1.1 The problem a DHT solves
+
+Imagine you want to store a billion key–value pairs across a fluctuating set of peers. A naive approach
+puts everything on one coordinator — but that coordinator is a bottleneck and a kill switch. The DHT insight
+is to give every *node* and every *key* an ID drawn from the same address space (say, 256-bit
+numbers), then define a rule: **a key lives on the node(s) whose ID is "closest" to the key's ID.**
+Now any node can independently figure out where a key *should* be, without asking a server.
+
+Two questions fall out of that: (1) what does "closest" mean, and (2) how does a node that knows only a
+handful of peers *route* a query to the right corner of the network? Kademlia answers both elegantly.
+
+## 1.2 XOR as a distance metric
+
+Kademlia measures distance between two IDs as their bitwise **XOR**, interpreted as an integer:
+`distance(a,b) = a XOR b`. This looks strange the first time you see it, but it has exactly the
+properties a metric needs:
+
+- **Identity:** `d(a,a) = 0` — a node is distance zero from itself.
+- **Symmetry:** `d(a,b) = d(b,a)` — if I am close to you, you are equally close to me. (This is the property the older Chord ring lacked, and why Kademlia routing tables self-reinforce.)
+- **Triangle inequality:** `d(a,c) ≤ d(a,b) ⊕ d(b,c)` holds.
+- **Unidirectionality:** for any point `a` and distance `Δ`, there is exactly *one* point `b` with `d(a,b)=Δ`. This means all lookups for the same key converge along the same path, which is what makes caching and routing-table convergence work.
+
+The magic is that XOR distance is *prefix-sensitive*: two IDs that share a long leading bit-prefix are
+numerically close. So "getting closer to the target" is the same as "matching more of its high bits," and that
+turns routing into a binary-search-like descent through the ID space.
+
+> Intuition
+> Think of IDs as leaves of a binary tree. Each step of a lookup lets you correct one more bit, halving the
+> remaining search space. Halving repeatedly across `N` nodes is why lookups take `O(log N)` hops.
+
+## 1.3 k-buckets: the routing table
+
+A node can't remember every peer, so Kademlia keeps a structured, partial view. For each bit-distance band
+`i` (peers whose ID differs from mine starting at bit `i`), the node keeps a
+**k-bucket**: a list of up to `k` contacts (commonly `k = 20`). The result is a
+routing table that is *dense for nearby IDs and sparse for far ones* — you know your immediate neighborhood
+in fine detail and the rest of the universe only coarsely. That asymmetry is exactly what you need: to route, you
+only ever need a peer that is closer than you to the target, and the table guarantees you have one.
+
+k-buckets also encode a liveness policy. When a bucket is full and a new node appears, Kademlia pings the
+*least-recently-seen* contact; if it still answers, the newcomer is discarded. This deliberately favors
+long-lived nodes, because empirically a node that has been up for an hour is likely to stay up another hour. It
+also makes the table naturally resistant to flooding attacks.
+
+## 1.4 The four RPCs
+
+| RPC | Purpose |
+|---|---|
+| `PING` | Liveness check; the heartbeat behind bucket maintenance. |
+| `STORE` | Tell a node to hold a `(key, value)` pair. |
+| `FIND_NODE` | "Give me the `k` closest contacts you know to this ID." The workhorse of routing. |
+| `FIND_VALUE` | Like `FIND_NODE`, but if the node holds the value it returns it directly. |
+
+## 1.5 Iterative lookup and the α parameter
+
+To find a target, a node starts with the closest contacts it knows and sends them `FIND_NODE` in
+parallel. Each response returns contacts that are (hopefully) closer; the node keeps the best results it has seen,
+picks the closest un-queried ones, and repeats. Lookups are **iterative** — the searcher drives every
+step and stays in control — rather than recursive, which improves resilience to misbehaving nodes.
+
+The concurrency factor `α` (typically 3) controls how many queries are in flight at once. It
+trades latency against redundant traffic: higher `α` tolerates slow or dead peers without stalling
+the descent, at the cost of extra packets.
+
+> Holepunch note
+> `hyperdht` is Kademlia-derived but tuned for a different job: instead of storing arbitrary blobs, its
+> primary role is *peer discovery and connection bootstrapping*. It stores small mutable/immutable records
+> (signed announcements of "I am reachable at this address") and integrates UDP hole-punching directly into the
+> lookup. Same routing skeleton, different payload. Keep this contrast ready — it is a likely interview question.
+
+## 1.6 Lab — build a minimal Kademlia routing core
+
+---
+
+### Goal
+
+Implement XOR distance, a k-bucket routing table, and a simulated iterative lookup over an in-memory network
+of nodes. You will *see* the `log N` convergence with your own eyes by printing each hop.
+
+### Setup
+
+```
+# no dependencies — pure Node
+mkdir kad-lab && cd kad-lab
+node --version   # v18+ recommended
+```
+
+### Step 1 — IDs and XOR distance
+
+We use 16-bit IDs (a `Buffer` of 2 bytes) so the numbers stay small and printable. Real systems use
+160 or 256 bits, but the math is identical.
+
+```
+// kad.js
+const ID_BITS = 16;
+const ID_BYTES = ID_BITS / 8;
+
+function randomId() {
+  const b = Buffer.allocUnsafe(ID_BYTES);
+  for (let i = 0; i < ID_BYTES; i++) b[i] = (Math.random() * 256) | 0;
+  return b;
+}
+
+// XOR distance as a BigInt so it is directly comparable
+function distance(a, b) {
+  let d = 0n;
+  for (let i = 0; i < ID_BYTES; i++) d = (d << 8n) | BigInt(a[i] ^ b[i]);
+  return d;
+}
+
+// index of the most-significant differing bit -> which bucket a peer belongs in
+function bucketIndex(self, other) {
+  for (let i = 0; i < ID_BYTES; i++) {
+    const x = self[i] ^ other[i];
+    if (x !== 0) return i * 8 + Math.clz32(x) - 24; // clz32 on a byte
+  }
+  return ID_BITS; // identical
+}
+```
+
+### Step 2 — the k-bucket routing table
+
+```
+const K = 4; // small k so buckets fill up visibly
+
+class RoutingTable {
+  constructor(selfId) {
+    this.self = selfId;
+    this.buckets = Array.from({ length: ID_BITS + 1 }, () => []);
+  }
+  add(node) {
+    if (node.id.equals(this.self)) return;
+    const b = bucketIndex(this.self, node.id);
+    const bucket = this.buckets[b];
+    if (bucket.find(n => n.id.equals(node.id))) return;
+    if (bucket.length < K) bucket.push(node);
+    // (real impl: ping least-recently-seen before evicting)
+  }
+  // return the n contacts closest to a target id
+  closest(target, n = K) {
+    return this.buckets.flat()
+      .sort((x, y) => (distance(x.id, target) < distance(y.id, target) ? -1 : 1))
+      .slice(0, n);
+  }
+}
+```
+
+### Step 3 — a simulated network + iterative lookup
+
+```
+const ALPHA = 3;
+
+class Node {
+  constructor(id) { this.id = id; this.table = new RoutingTable(id); }
+  // the FIND_NODE RPC: just answer with my closest known contacts
+  findNode(target) { return this.table.closest(target); }
+}
+
+function buildNetwork(count) {
+  const nodes = Array.from({ length: count }, () => new Node(randomId()));
+  // seed each node's table with random acquaintances (bootstrap gossip)
+  for (const n of nodes)
+    for (let i = 0; i < 20; i++)
+      n.table.add(nodes[(Math.random() * count) | 0]);
+  return nodes;
+}
+
+// iterative lookup driven by one starting node
+function lookup(start, target) {
+  let shortlist = start.table.closest(target, ALPHA);
+  const queried = new Set();
+  let hops = 0, best = distance(start.id, target);
+
+  while (true) {
+    const batch = shortlist.filter(n => !queried.has(n.id.toString('hex'))).slice(0, ALPHA);
+    if (batch.length === 0) break;
+    hops++;
+    let found = [];
+    for (const peer of batch) {
+      queried.add(peer.id.toString('hex'));
+      found = found.concat(peer.findNode(target));
+    }
+    // merge, dedupe, keep K closest overall
+    const seen = new Map();
+    for (const n of shortlist.concat(found)) seen.set(n.id.toString('hex'), n);
+    shortlist = [...seen.values()]
+      .sort((x, y) => (distance(x.id, target) < distance(y.id, target) ? -1 : 1))
+      .slice(0, K);
+    const closest = distance(shortlist[0].id, target);
+    if (closest >= best) break; // no improvement -> converged
+    best = closest;
+  }
+  return { hops, winner: shortlist[0], best };
+}
+
+// --- run it ---
+const N = 5000;
+const net = buildNetwork(N);
+const target = randomId();
+const start = net[0];
+const r = lookup(start, target);
+console.log(`network size  : ${N}`);
+console.log(`target        : ${target.toString('hex')}`);
+console.log(`hops to find  : ${r.hops}`);
+console.log(`log2(N)       : ${Math.log2(N).toFixed(1)}`);
+console.log(`closest found : ${r.winner.id.toString('hex')}`);
+```
+
+### Run & expected output
+
+```
+node kad.js
+// network size  : 5000
+// target        : 9c41
+// hops to find  : 4         <- compare to log2(5000) ≈ 12.3
+// closest found : 9c2f      <- shares the 9c.. prefix
+```
+
+### Experiments to try
+
+- Sweep `N` from 100 to 100000 and plot `hops` vs `N`. The curve is logarithmic — this is the headline property of every DHT.
+- Set `ALPHA = 1` and re-run. Lookups still work but take more rounds and are fragile if a queried node is "dead." Then try `ALPHA = 8` and watch redundant queries climb.
+- Reduce the bootstrap acquaintance count from 20 to 3. Lookups degrade or fail — the routing table is too sparse. This is why real DHTs run periodic bucket-refresh lookups.
+
+## 1.7 Self-check & interview drill
+
+- I can define XOR distance and name its four metric properties.
+- I can explain what a k-bucket stores and why eviction favors old nodes.
+- I can walk through an iterative lookup and the role of `α`.
+- My lab prints hop counts that grow logarithmically with network size.
+
+---
+
+<!-- lesson: fm-day2 · https://p2pbuilders.com/learn/fm-day2.html -->
+
+# Day 02: BitTorrent & Hypercore
+
+*Two ways to move data with no server: a static swarm and a signed, append-only log.*
+
+> ⏱ ~90 min · theory 50 / lab 40
+
+Yesterday's DHT tells peers *how to find each other*. Today is about what they do once connected:
+*move data efficiently and verifiably*. BitTorrent solved this for static files in 2001 with a beautifully
+pragmatic incentive design. Hypercore — the core of the Holepunch stack — solved a harder version: a single-writer,
+append-only log that any peer can replicate and cryptographically verify block-by-block. Understanding the contrast
+between them is the fastest way to sound fluent about P2P data transfer.
+
+## 2.1 BitTorrent: the swarm model
+
+A torrent splits a file into fixed-size **pieces** (typically 256 KB–1 MB), and the
+`.torrent` metadata (or magnet link) carries a SHA-1/SHA-256 hash of every piece. That hash list is the
+trust anchor: a peer can verify any piece it receives against the expected hash and reject corrupt or malicious data
+without trusting the sender. Peers swap pieces until everyone has the whole file.
+
+### Piece selection: rarest-first
+
+If every peer downloaded pieces in order, the first pieces would be everywhere and the last pieces would be
+scarce — and if the only seed left before sharing a rare piece, the file would be unrecoverable. BitTorrent instead
+prefers the **rarest piece first**: each peer tracks how many of its neighbors have each piece and
+fetches the least-replicated ones. This spreads scarcity risk and keeps the swarm healthy as seeds come and go. A
+small exception ("random first piece") bootstraps a brand-new peer quickly so it has something to trade.
+
+### Choking: tit-for-tat incentives
+
+BitTorrent's real innovation is social, not technical. Each peer **chokes** (refuses to upload to)
+most of its neighbors and **unchokes** only a few — preferentially those who upload to *it* the
+fastest. This tit-for-tat reciprocation rewards contributors and starves freeloaders. Periodically a peer does an
+**optimistic unchoke** of a random neighbor, to discover better partners and to give newcomers (who have
+nothing to offer yet) a foot in the door.
+
+| Mechanism | What it prevents |
+|---|---|
+| Per-piece hashes | Corrupt / malicious data acceptance |
+| Rarest-first | Piece scarcity & unrecoverable swarms |
+| Tit-for-tat choking | Freeloading (download without upload) |
+| Optimistic unchoke | Newcomer starvation & local optima |
+| BitTorrent DHT (BEP 5) + PEX | Dependence on a central tracker |
+
+The **bitfield** message — sent on connection — is how a peer advertises which pieces it already has,
+as a compact bit array. `have` messages then incrementally announce new pieces. The **BitTorrent
+DHT** (a Kademlia network keyed by infohash) and **PEX** (peer exchange) let swarms operate with
+no tracker at all — this is exactly the DHT material from Day 1 applied in production.
+
+## 2.2 Hypercore: the append-only log
+
+BitTorrent distributes a *fixed, known-in-advance* file. But many applications need a *growing*
+data feed — a chat history, a database changelog, a file that gets revised. Hypercore is the answer: a
+**secure, append-only log** owned by a single keypair. Only the holder of the secret key can append;
+anyone with the public key (which *is* the feed's address) can read and verify.
+
+### The Merkle tree over blocks
+
+Each appended block is hashed (BLAKE2b), and those hashes form a **Merkle tree**. The signed root
+commits to the entire log. The payoff: a peer can request block `i` alone and receive it plus a small set
+of sibling hashes (a Merkle proof) that verify it against the signed root — *without downloading the rest of the
+log*. This is what makes random access and partial replication trustworthy. It is the same idea as BitTorrent's
+piece hashes, generalized into a tree so proofs stay `O(log n)` and the structure can grow.
+
+> Why a tree, not a flat list
+> A flat hash list (BitTorrent) is fine when the piece count is fixed and known. A Merkle tree lets the dataset
+> *grow without bound* while keeping verification proofs logarithmic and letting the writer publish a single
+> signed root that commits to all of history.
+
+### Single-writer, many-reader
+
+The keypair is the heart of the model. The **public key is the discovery key / address**; the secret
+key authorizes appends. Replication is a duplex stream: two peers exchange what blocks they have and want, request
+ranges, and verify every block against the Merkle root as it arrives. Higher layers in the Holepunch stack
+(`hyperbee` for key–value/B-tree, `hyperdrive` for filesystems, `autobase` for
+multi-writer) are all built on this one primitive.
+
+|  | BitTorrent | Hypercore |
+|---|---|---|
+| Data shape | Static file, fixed pieces | Append-only growing log |
+| Trust anchor | Flat list of piece hashes | Signed Merkle root + keypair |
+| Writers | Whoever seeds (content-addressed) | Exactly one (key-addressed) |
+| Mutability | Immutable | Append (history preserved) |
+| Verification | Per-piece hash check | Per-block Merkle proof |
+
+## 2.3 Lab — append-only log with Merkle verification
+
+---
+
+### Goal
+
+Build a tiny append-only log that produces a Merkle root and lets a "reader" verify a single block with a proof —
+the conceptual core of Hypercore — using only Node's built-in `crypto`. Then run real Hypercore replication
+between two instances.
+
+### Part A — Merkle log from scratch (no dependencies)
+
+```
+// merkle-log.js
+const crypto = require('crypto');
+const H = (buf) => crypto.createHash('sha256').update(buf).digest();
+
+class MerkleLog {
+  constructor() { this.blocks = []; this.leaves = []; }
+
+  append(data) {
+    const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    this.blocks.push(buf);
+    this.leaves.push(H(buf));
+    return this.blocks.length - 1; // index
+  }
+
+  // build the tree bottom-up; return the layered hash arrays
+  tree() {
+    let layer = this.leaves.slice();
+    const layers = [layer];
+    while (layer.length > 1) {
+      const next = [];
+      for (let i = 0; i < layer.length; i += 2) {
+        const left = layer[i];
+        const right = layer[i + 1] || left; // duplicate last if odd
+        next.push(H(Buffer.concat([left, right])));
+      }
+      layers.push(next);
+      layer = next;
+    }
+    return layers;
+  }
+
+  root() { const l = this.tree(); return l[l.length - 1][0]; }
+
+  // proof = sibling hash at each level needed to recompute the root
+  proof(index) {
+    const layers = this.tree();
+    const path = [];
+    let idx = index;
+    for (let lvl = 0; lvl < layers.length - 1; lvl++) {
+      const isRight = idx % 2 === 1;
+      const sibling = isRight ? idx - 1 : idx + 1;
+      const layer = layers[lvl];
+      path.push({ hash: (layer[sibling] || layer[idx]), isRight });
+      idx = idx >> 1;
+    }
+    return path;
+  }
+}
+
+// a reader who has ONLY the trusted root verifies one block
+function verify(block, index, proof, trustedRoot) {
+  let h = H(block);
+  for (const step of proof) {
+    h = step.isRight
+      ? H(Buffer.concat([step.hash, h]))   // our node was on the right
+      : H(Buffer.concat([h, step.hash]));
+  }
+  return h.equals(trustedRoot);
+}
+
+// --- demo ---
+const log = new MerkleLog();
+['genesis', 'block-1', 'block-2', 'block-3', 'block-4'].forEach(d => log.append(d));
+const root = log.root();
+
+const i = 3;
+const ok = verify(log.blocks[i], i, log.proof(i), root);
+console.log('root      :', root.toString('hex').slice(0, 16), '…');
+console.log('verify #3 :', ok);
+
+// tamper test: flip the block, proof must fail
+const bad = Buffer.from('block-3-EVIL');
+console.log('tampered  :', verify(bad, i, log.proof(i), root));
+```
+
+### Expected output
+
+```
+node merkle-log.js
+// root      : 2f6a... …
+// verify #3 : true
+// tampered  : false   <- the Merkle proof rejects altered data
+```
+
+### Part B — the real thing: Hypercore replication
+
+Now see it in production form. Modern Hypercore (v11+) is managed through a `Corestore` backed by a
+storage path; we replicate a log from a writer store to a key-only reader store over piped streams (the same API
+works over a real socket).
+
+```
+npm init -y
+npm install hypercore corestore
+```
+
+```
+// hc.js
+const Corestore = require('corestore');
+const os = require('os'), path = require('path'), fs = require('fs');
+
+async function main() {
+  // two independent stores on disk (Hypercore 11+ requires a storage dir)
+  const dirA = fs.mkdtempSync(path.join(os.tmpdir(), 'hc-a-'));
+  const dirB = fs.mkdtempSync(path.join(os.tmpdir(), 'hc-b-'));
+
+  // writer core
+  const store = new Corestore(dirA);
+  const writer = store.get({ name: 'log' });
+  await writer.ready();
+  await writer.append([Buffer.from('hello'), Buffer.from('p2p'), Buffer.from('world')]);
+  console.log('writer length:', writer.length,
+              'key:', writer.key.toString('hex').slice(0, 12));
+
+  // reader store: opens the core by PUBLIC KEY only — it has no data yet
+  const store2 = new Corestore(dirB);
+  const reader = store2.get({ key: writer.key });
+  await reader.ready();
+
+  // pipe the two replication streams together (stand-in for a socket)
+  const s1 = store.replicate(true);
+  const s2 = store2.replicate(false);
+  s1.pipe(s2).pipe(s1);
+
+  // reader fetches block 2 — verified against the signed root automatically
+  const block = await reader.get(2);
+  console.log('reader got block 2:', block.toString()); // "world"
+  process.exit(0);
+}
+main();
+```
+
+### Experiments
+
+- In Part A, append 1000 blocks and confirm proof length grows like `log₂(n)`, not `n`. That logarithmic proof size is the whole point.
+- In Part B, call `reader.get(0)` before the writer appends (start the reader first), then append — observe that `get` resolves once the block arrives. Hypercore `get` means "wait until available."
+- Inspect `reader.length` vs `reader.contiguousLength` to see the difference between "known to exist" and "actually downloaded."
+
+## 2.4 Self-check & interview drill
+
+- I can explain rarest-first and tit-for-tat choking and what each prevents.
+- I can describe how a Merkle proof verifies one block against a signed root.
+- My from-scratch Merkle log verifies good blocks and rejects tampered ones.
+- I replicated a real Hypercore between a writer and a key-only reader.
+
+---
+
+<!-- lesson: fm-day3 · https://p2pbuilders.com/learn/fm-day3.html -->
+
+# Day 03: UDP, TCP/IP & NAT Traversal
+
+*How two machines behind home routers manage to talk directly — the hardest, most-tested topic on the list.*
+
+> ⏱ ~2 hrs · theory 60 / lab 60
+
+This is the chapter most likely to expose gaps in an interview, because it's where networking theory meets ugly
+real-world reality. The internet was designed for every machine to have a public address; instead, billions of
+devices hide behind **NAT** (Network Address Translation). P2P only works if peers can punch through
+that. By the end of today you will have two UDP "peers" establishing a direct connection through a simulated
+rendezvous server — the exact dance `hyperdht` performs.
+
+## 3.1 TCP vs UDP — pick your tradeoff
+
+|  | TCP | UDP |
+|---|---|---|
+| Connection | Handshake, stateful | Connectionless, fire-and-forget |
+| Delivery | Reliable, ordered, retransmitted | Best-effort; may drop/reorder/dup |
+| Flow/congestion control | Built in | You build it (or don't) |
+| Head-of-line blocking | Yes — one lost segment stalls the stream | No — packets are independent |
+| Overhead | 20-byte header, ACK traffic | 8-byte header |
+| NAT traversal | Hard (stateful, sequence numbers) | Easier (stateless datagrams) |
+
+P2P systems lean heavily on **UDP** for two reasons. First, NAT hole-punching is far more reliable
+with stateless datagrams than with TCP's handshake-and-sequence machinery. Second, head-of-line blocking: TCP
+guarantees order, so a single lost packet stalls *everything* behind it — fatal for real-time or multiplexed
+streams. This is exactly why QUIC (and HTTP/3) was built on UDP. The tradeoff is that you must implement whatever
+reliability you actually need yourself, on top of UDP.
+
+> The mental model
+> TCP is a phone call: connection established, ordered conversation, you notice if the line drops. UDP is postcards:
+> cheap, independent, might arrive out of order or not at all — but you can drop one in any mailbox without setup.
+
+## 3.2 What NAT actually does
+
+Your router owns one public IP. Every device behind it has a private IP (`192.168.x.x`). When an inside
+device sends a packet out, the router rewrites the source `(private IP : port)` to
+`(public IP : some external port)` and records the mapping in a translation table. Replies to that
+external port get rewritten back and forwarded inside. The problem for P2P: an *unsolicited* inbound packet
+from a stranger has no table entry, so the router drops it. Two peers behind NATs each expect the other to "call
+first" — a deadlock.
+
+### The four NAT behaviors
+
+| Type | Mapping rule | Punchable? |
+|---|---|---|
+| Full-cone | One external port per internal socket; *anyone* can use it | Easy |
+| Restricted-cone | Same port, but only hosts you've sent to may reply | Yes |
+| Port-restricted | Only the exact host:port you contacted may reply | Yes (most common case) |
+| Symmetric | A *new* external port per destination — mapping is unpredictable | Hard / often needs relay |
+
+The killer is **symmetric NAT**: because it allocates a different external port for every
+destination, the port a peer learns via the rendezvous server is *not* the port that will be used to reach the
+other peer. Hole-punching relies on predicting the external mapping, and symmetric NAT breaks that prediction. This
+is the single most important NAT fact to be able to state crisply.
+
+## 3.3 UDP hole punching, step by step
+
+Both peers can make *outbound* connections; neither can receive *unsolicited* inbound. The trick is
+to use a mutually reachable **rendezvous (signaling) server** to learn each other's public mappings,
+then both fire packets at each other *simultaneously*. Each outbound packet opens a hole in its own NAT; when
+the other peer's packet arrives, a matching table entry already exists, so it's allowed through.
+
+1. Peer A and Peer B each send a packet to the rendezvous server. The server observes their public `(IP:port)` mappings (this is what STUN does).
+2. The server tells A about B's public mapping, and B about A's.
+3. A and B both start sending UDP packets *directly* to each other's public mapping. The first packets may be dropped (no hole yet), but each one punches an outbound hole.
+4. Once both holes exist, packets flow directly — the server is no longer involved.
+
+### STUN, TURN, ICE — the standard stack
+
+- **STUN**: a server that tells you your own public mapping ("what does the outside world see me as?"). Cheap, the basis of step 1.
+- **TURN**: a relay that forwards traffic between peers when direct punching fails (e.g. symmetric NAT on both ends). Reliable but costs bandwidth — it's the fallback, not the goal.
+- **ICE**: the algorithm that gathers all candidate addresses (local, STUN-derived, TURN-relayed), tries them in priority order, and picks the best working pair. WebRTC uses ICE.
+
+> Holepunch note
+> `hyperdht` rolls its own version of this. The DHT itself *is* the rendezvous layer: peers announce
+> on a topic, the DHT coordinates the simultaneous-open, and a technique sometimes called "UDX" provides a
+> reliable-stream abstraction over UDP afterward. When you connect via `hyperswarm`, this whole sequence
+> happens under the hood. Being able to say "the DHT replaces the STUN/signaling server" is a strong interview answer.
+
+## 3.4 Lab — simulate UDP hole punching locally
+
+---
+
+### Goal
+
+Build a rendezvous server and two peers using Node's `dgram` (UDP) module. The server introduces the
+peers by their observed addresses; the peers then exchange packets *directly*. Running on localhost there's
+no real NAT, but the *protocol logic* — observe address, exchange, simultaneous send — is identical to the
+real thing.
+
+### Step 1 — the rendezvous server
+
+```
+// rendezvous.js — learns each peer's public address and introduces them
+const dgram = require('dgram');
+const server = dgram.createSocket('udp4');
+const peers = {};
+
+server.on('message', (msg, rinfo) => {
+  const { name } = JSON.parse(msg);
+  // rinfo is the address the SERVER sees — i.e. the public mapping (STUN)
+  peers[name] = { address: rinfo.address, port: rinfo.port };
+  console.log(`registered ${name} @ ${rinfo.address}:${rinfo.port}`);
+
+  // once both peers are known, introduce them to each other
+  const names = Object.keys(peers);
+  if (names.length === 2) {
+    const [a, b] = names;
+    introduce(a, b); introduce(b, a);
+  }
+});
+
+function introduce(to, about) {
+  const payload = Buffer.from(JSON.stringify({ peer: about, addr: peers[about] }));
+  server.send(payload, peers[to].port, peers[to].address);
+}
+
+server.bind(9000, () => console.log('rendezvous on :9000'));
+```
+
+### Step 2 — a peer
+
+```
+// peer.js — usage: node peer.js <myName>
+const dgram = require('dgram');
+const myName = process.argv[2] || 'peerA';
+const sock = dgram.createSocket('udp4');
+
+const RDV = { port: 9000, host: '127.0.0.1' };
+let partner = null;
+let connected = false;
+
+sock.on('message', (msg, rinfo) => {
+  let data; try { data = JSON.parse(msg); } catch { data = { raw: msg.toString() }; }
+
+  // (a) introduction from the rendezvous server
+  if (data.addr) {
+    partner = data.addr;
+    console.log(`got partner ${data.peer} @ ${partner.address}:${partner.port}`);
+    startPunching();
+    return;
+  }
+  // (b) a direct packet from the partner — the hole is open!
+  if (data.hello) {
+    if (!connected) {
+      connected = true;
+      console.log(`✅ DIRECT connection established with ${data.hello}`);
+    }
+    return;
+  }
+});
+
+// punch: fire packets straight at the partner's public mapping repeatedly
+function startPunching() {
+  const timer = setInterval(() => {
+    if (connected) return clearInterval(timer);
+    const pkt = Buffer.from(JSON.stringify({ hello: myName }));
+    sock.send(pkt, partner.port, partner.address); // opens our hole + may pass theirs
+  }, 200);
+}
+
+// register with the rendezvous server on startup
+sock.send(Buffer.from(JSON.stringify({ name: myName })), RDV.port, RDV.host);
+console.log(`${myName} registering…`);
+```
+
+### Run it (three terminals)
+
+```
+# terminal 1
+node rendezvous.js
+# terminal 2
+node peer.js peerA
+# terminal 3
+node peer.js peerB
+```
+
+```
+# peerA output:
+# peerA registering…
+# got partner peerB @ 127.0.0.1:53412
+# ✅ DIRECT connection established with peerB
+```
+
+### What just happened (and what's different on real NAT)
+
+- The server learned each peer's address *as it observed it* — that's the STUN principle. On real NAT this is the public mapping, not the private LAN address.
+- Both peers fired at each other simultaneously; the repeated sends model the "first packets may be dropped while the hole opens" reality.
+- Once connected, the server is never used again — true direct P2P.
+- On **symmetric NAT**, the port the server observed would *not* match the port used peer-to-peer, so the punch fails and you'd fall back to a TURN-style relay. Try simulating this by having a peer send its punch packets from a *different* socket than the one it registered with — the introduction address no longer matches and the connection never forms.
+
+## 3.5 Self-check & interview drill
+
+- I can name the four NAT types and which one defeats hole punching.
+- I can explain the rendezvous → observe → simultaneous-send sequence.
+- I can define STUN, TURN, and ICE and how `hyperdht` replaces the signaling server.
+- My two UDP peers established a direct connection through a rendezvous server.
+
+---
+
+<!-- lesson: fm-day4 · https://p2pbuilders.com/learn/fm-day4.html -->
+
+# Day 04: Binary Protocols & Serialization
+
+*Why every serious P2P system hand-rolls its bytes — framing, varints, and zero-copy formats.*
+
+> ⏱ ~90 min · theory 45 / lab 45
+
+JSON is wonderful for humans and terrible for hot networking paths. It's bulky, slow to parse, ambiguous about
+number types, and forces you to allocate strings for everything. P2P protocols move millions of small messages, so
+they encode data as tight **binary**. Today you'll learn how messages are *framed* on a stream,
+how integers are packed with **varints**, and how the major serialization formats trade off — then
+hand-write an encoder/decoder, which is exactly the kind of thing you may be asked to live-code.
+
+## 4.1 Why binary beats JSON on the wire
+
+| Concern | JSON | Binary |
+|---|---|---|
+| Size | `{"id":1000000}` = 15 bytes | varint = 3 bytes |
+| Parse cost | Tokenize text, allocate strings | Read fixed offsets / shift bits |
+| Number fidelity | All numbers are float64; no int64 | Exact integer widths |
+| Schema | Self-describing (keys repeated every message) | Schema known by both sides; no key overhead |
+
+The self-describing nature of JSON is its biggest cost at scale: every message re-sends the field names. Binary
+protocols agree on a schema once, then send only values in a known order.
+
+## 4.2 Framing: where does a message end?
+
+TCP and UDX give you a *stream of bytes*, not messages. If you write two messages, the reader may receive
+them glued together, or split across two reads. You must impose **framing**. Two common approaches:
+
+- **Delimiter-based:** end each message with a sentinel byte (e.g. newline). Simple, but you must escape the delimiter if it can appear in the payload — awkward for binary data.
+- **Length-prefix:** write the message length first, then the bytes. The reader reads the length, then knows exactly how many bytes to consume. This is the standard for binary protocols and what you'll build.
+
+> The framing bug everyone hits once
+> Forgetting that a single `'data'` event can contain *part* of a message, *multiple*
+> messages, or a message *plus part of the next*. A correct length-prefix reader buffers incoming bytes and
+> emits messages only when a full frame has arrived. Get this wrong and your protocol works in tests and corrupts
+> under load.
+
+## 4.3 Varints: integers that earn their bytes
+
+Most integers in real protocols are small (lengths, counts, indices). Spending 4 or 8 fixed bytes on a value of
+`5` is wasteful. A **varint** (LEB128, as used by Protobuf, WebAssembly, and Holepunch's
+`compact-encoding`) encodes an integer in a variable number of bytes: 7 bits of value per byte, with the
+high bit as a "more bytes follow" continuation flag.
+
+- Values 0–127 → 1 byte
+- 128–16383 → 2 bytes
+- …7 more bits per additional byte
+
+So small numbers cost one byte, and you only pay for big numbers when you actually use them. This is the single
+most common trick in compact wire formats.
+
+## 4.4 The serialization landscape
+
+| Format | Shape | Notes |
+|---|---|---|
+| **Protocol Buffers** | Schema (.proto), varint-based | Compact, fast, ubiquitous; needs codegen. Tag-length-value fields. |
+| **MessagePack** | Schemaless, JSON-shaped | "Binary JSON" — drop-in for JSON, self-describing, no schema needed. |
+| **Cap'n Proto** | Schema, zero-copy | Memory layout *is* the wire format; "infinitely faster" — no parse step. |
+| **FlatBuffers** | Schema, zero-copy | Access fields without unpacking the whole buffer; great for large messages read partially. |
+| **compact-encoding** | Hand-composed codecs | Holepunch's lib: tiny, explicit, varint-first. You compose encoders by hand. |
+
+The key conceptual split: **parse-based** formats (Protobuf, MessagePack) decode bytes into new
+in-memory objects, while **zero-copy** formats (Cap'n Proto, FlatBuffers) let you read fields directly
+out of the received buffer with no allocation or decode pass. Zero-copy wins when messages are large or you only
+read a few fields; parse-based is simpler and fine for small messages. `compact-encoding` sits in the
+parse-based camp but is deliberately minimal and gives you total control — which is why it suits a P2P stack where
+every byte and allocation counts.
+
+## 4.5 Lab — hand-write a length-prefixed varint protocol
+
+---
+
+### Goal
+
+Implement varint encode/decode, then a length-prefixed framer that correctly reassembles messages from an
+arbitrarily-chunked byte stream. Finish by encoding a structured message by hand. Then compare against real
+`compact-encoding`.
+
+### Step 1 — varints
+
+```
+// varint.js
+function encodeVarint(value) {
+  const bytes = [];
+  while (value > 0x7f) {            // while more than 7 bits remain
+    bytes.push((value & 0x7f) | 0x80); // low 7 bits + continuation flag
+    value = Math.floor(value / 128);  // >>> 7 but safe past 32 bits
+  }
+  bytes.push(value & 0x7f);            // final byte, no continuation
+  return Buffer.from(bytes);
+}
+
+function decodeVarint(buf, offset = 0) {
+  let result = 0, shift = 0, pos = offset;
+  while (true) {
+    const byte = buf[pos++];
+    result += (byte & 0x7f) * Math.pow(2, shift);
+    if ((byte & 0x80) === 0) break;  // continuation bit clear -> done
+    shift += 7;
+  }
+  return { value: result, bytesRead: pos - offset };
+}
+
+// sanity
+for (const v of [0, 1, 127, 128, 300, 1000000]) {
+  const enc = encodeVarint(v);
+  const dec = decodeVarint(enc).value;
+  console.log(v, '->', [...enc], `(${enc.length} bytes) ->`, dec);
+}
+module.exports = { encodeVarint, decodeVarint };
+```
+
+```
+node varint.js
+// 0 -> [0] (1 bytes) -> 0
+// 127 -> [127] (1 bytes) -> 127
+// 128 -> [128,1] (2 bytes) -> 128
+// 300 -> [172,2] (2 bytes) -> 300
+// 1000000 -> [192,132,61] (3 bytes) -> 1000000   <- vs 15 bytes as JSON
+```
+
+### Step 2 — a correct length-prefixed framer
+
+This is the part interviewers love, because the naive version is subtly broken. The framer buffers raw bytes and
+only emits a message when a complete frame is present — handling split *and* coalesced reads.
+
+```
+// framer.js
+const { encodeVarint, decodeVarint } = require('./varint');
+const EventEmitter = require('events');
+
+function frame(payload) {
+  const len = encodeVarint(payload.length);
+  return Buffer.concat([len, payload]); // [varint length][payload bytes]
+}
+
+class Decoder extends EventEmitter {
+  constructor() { super(); this.buf = Buffer.alloc(0); }
+  push(chunk) {
+    this.buf = Buffer.concat([this.buf, chunk]); // accumulate
+    while (this.buf.length > 0) {
+      let header;
+      try { header = decodeVarint(this.buf, 0); }
+      catch { return; }                       // length not fully arrived
+      const total = header.bytesRead + header.value;
+      if (this.buf.length < total) return;     // full frame not here yet — wait
+      const payload = this.buf.subarray(header.bytesRead, total);
+      this.emit('message', Buffer.from(payload));
+      this.buf = this.buf.subarray(total);   // keep the remainder
+    }
+  }
+}
+module.exports = { frame, Decoder };
+```
+
+### Step 3 — prove it survives evil chunking
+
+```
+// test-framer.js
+const { frame, Decoder } = require('./framer');
+
+const messages = ['hello', 'a', 'a much longer message here', 'last']
+  .map(s => Buffer.from(s));
+const stream = Buffer.concat(messages.map(frame)); // all frames glued together
+
+const dec = new Decoder();
+const out = [];
+dec.on('message', m => out.push(m.toString()));
+
+// feed the stream in deliberately awful 3-byte chunks
+for (let i = 0; i < stream.length; i += 3)
+  dec.push(stream.subarray(i, i + 3));
+
+console.log(out);
+// [ 'hello', 'a', 'a much longer message here', 'last' ]  ✅ reassembled perfectly
+```
+
+### Step 4 — encode a structured message by hand
+
+A "peer announce" message: a 1-byte type tag, a varint topic length + topic bytes, and a fixed 6-byte address
+(4-byte IPv4 + 2-byte port).
+
+```
+// announce.js
+const { encodeVarint, decodeVarint } = require('./varint');
+const TYPE_ANNOUNCE = 0x01;
+
+function encodeAnnounce({ topic, ip, port }) {
+  const topicBuf = Buffer.from(topic);
+  const addr = Buffer.alloc(6);
+  ip.split('.').forEach((o, i) => addr[i] = Number(o));
+  addr.writeUInt16BE(port, 4); // big-endian = network byte order
+  return Buffer.concat([
+    Buffer.from([TYPE_ANNOUNCE]),
+    encodeVarint(topicBuf.length), topicBuf,
+    addr
+  ]);
+}
+
+function decodeAnnounce(buf) {
+  let off = 0;
+  const type = buf[off++];
+  const { value: tlen, bytesRead } = decodeVarint(buf, off); off += bytesRead;
+  const topic = buf.subarray(off, off + tlen).toString(); off += tlen;
+  const ip = [...buf.subarray(off, off + 4)].join('.'); off += 4;
+  const port = buf.readUInt16BE(off);
+  return { type, topic, ip, port };
+}
+
+const wire = encodeAnnounce({ topic: 'chat-room-42', ip: '192.168.1.50', port: 9000 });
+console.log('bytes :', wire.length, [...wire]);
+console.log('decoded:', decodeAnnounce(wire));
+```
+
+### Step 5 — the real thing: `compact-encoding`
+
+```
+npm install compact-encoding
+```
+
+```
+// ce.js
+const c = require('compact-encoding');
+
+// compose a struct codec from primitives
+const announce = {
+  preencode(state, m) {     // pass 1: measure
+    c.string.preencode(state, m.topic);
+    c.uint16.preencode(state, m.port);
+  },
+  encode(state, m) {        // pass 2: write
+    c.string.encode(state, m.topic);
+    c.uint16.encode(state, m.port);
+  },
+  decode(state) {
+    return { topic: c.string.decode(state), port: c.uint16.decode(state) };
+  }
+};
+
+const buf = c.encode(announce, { topic: 'chat-room-42', port: 9000 });
+console.log('compact bytes:', buf.length, [...buf]);
+console.log('decoded      :', c.decode(announce, buf));
+```
+
+Notice the **two-pass** design: `preencode` computes the exact size so `encode`
+can write into a single pre-allocated buffer with no resizing — an allocation optimization you'll revisit on Day 6.
+
+### Experiments
+
+- Change the test framer chunk size to 1 byte, then to 1000. Both must produce identical output — that's the definition of correct framing.
+- Compare your hand-rolled announce size against the equivalent JSON string. Measure the ratio.
+- Add a malformed frame (a length prefix larger than the data that ever arrives) and confirm the decoder simply waits rather than crashing or emitting garbage.
+
+## 4.6 Self-check & interview drill
+
+- I can encode and decode a varint and explain its byte-size curve.
+- I can implement a length-prefix framer that survives split and coalesced reads.
+- I can hand-encode a structured message with mixed fixed and variable fields.
+- I understand `compact-encoding`'s two-pass preencode/encode design.
+
+---
+
+<!-- lesson: fm-day5 · https://p2pbuilders.com/learn/fm-day5.html -->
+
+# Day 05: Cryptographic Primitives
+
+*Signatures, key exchange, AEAD, and the Noise handshake that secures every Holepunch connection.*
+
+> ⏱ ~90 min · theory 50 / lab 40
+
+In a P2P network there's no certificate authority, no trusted server, no login. Identity, integrity, and
+confidentiality all come from cryptography applied directly between peers. You will *not* implement crypto
+primitives yourself (rule one of applied crypto: don't roll your own), but you must understand what each primitive
+does, why it's there, and how they compose into the **Noise Protocol** handshake that `hyperdht`
+uses to secure connections. Today is concept-heavy with a lab using `sodium-native`, the same library the
+Holepunch stack relies on.
+
+## 5.1 The four jobs crypto does here
+
+| Job | Primitive | Question it answers |
+|---|---|---|
+| Identity / authenticity | Ed25519 signatures | "Did the holder of this key really produce this?" |
+| Key agreement | X25519 (Curve25519 ECDH) | "How do two strangers derive a shared secret over a public channel?" |
+| Confidentiality + integrity | ChaCha20-Poly1305 / AES-GCM (AEAD) | "How do we encrypt so tampering is detectable?" |
+| Fingerprinting / commitment | BLAKE2b hashing, Merkle trees | "How do we name and verify data compactly?" |
+
+## 5.2 Ed25519 — identity as a keypair
+
+In Hypercore the **public key *is* the address** of a feed, and the secret key authorizes
+appends. Ed25519 is the signature scheme behind this: fast, deterministic (no risky randomness at signing time, the
+flaw that has broken ECDSA implementations), small keys and signatures (32 and 64 bytes). A signature proves a
+message was produced by the holder of the secret key and hasn't been altered. This is the entire basis of "single
+writer" — only one party can sign valid appends, and every reader can verify them with just the public key.
+
+## 5.3 X25519 — agreeing on a secret in the open
+
+Two peers who have never met need a shared symmetric key to encrypt their session. **Diffie–Hellman**
+over Curve25519 (X25519) lets each side combine its own secret with the other's public value to compute the
+*same* shared secret, while an eavesdropper who sees only the public values cannot. Using fresh
+**ephemeral** keypairs per session gives **forward secrecy**: even if a long-term key leaks
+later, past sessions stay private because their ephemeral secrets are already gone.
+
+> Signing vs key-exchange keys
+> Ed25519 (signing) and X25519 (key exchange) are sister curves — same underlying Curve25519 math, different jobs.
+> Don't conflate them: you sign with Ed25519 to prove identity, and DH with X25519 to derive session keys.
+
+## 5.4 AEAD — encrypt and authenticate together
+
+Plain encryption hides content but doesn't stop an attacker flipping bits. **AEAD** (Authenticated
+Encryption with Associated Data) — ChaCha20-Poly1305 or AES-GCM — encrypts *and* produces an authentication
+tag, so any tampering is detected on decryption. "Associated data" lets you bind unencrypted context (like a header)
+to the ciphertext so it can't be swapped. Every byte of an established Noise session rides inside AEAD frames.
+
+## 5.5 BLAKE2b and Merkle trees, revisited
+
+You met Merkle trees on Day 2. The hash underneath them in Hypercore is **BLAKE2b** — faster than
+SHA-256, with strong security margins. Hashing gives you fixed-size, collision-resistant fingerprints used for
+content addressing, the discovery key derived from a feed's public key, and the block/tree hashes that make partial
+replication verifiable.
+
+## 5.6 The Noise Protocol Framework
+
+Noise is a *framework* for building secure handshakes by composing the primitives above into a fixed
+sequence of DH operations. It's what WireGuard, WhatsApp, and Holepunch's transport use. A Noise handshake is named
+by a **pattern** of message tokens:
+
+- **XX**: both parties exchange and authenticate static keys *during* the handshake. Mutual authentication without either side knowing the other's key in advance — the general-purpose default.
+- **IK**: the initiator already knows the responder's static key (e.g. you're dialing a specific peer whose public key you looked up in the DHT). Faster, fewer round trips, and hides the initiator's identity from passive eavesdroppers.
+- **NK / NN / KK …**: other combinations of who-knows-what ahead of time.
+
+Each handshake message mixes new DH outputs into a running shared state; by the end both sides have derived
+matching symmetric keys for an AEAD-encrypted session with forward secrecy. The elegance is that the *pattern*
+declares the security properties, and the framework guarantees them.
+
+> Holepunch note
+> When you connect through `hyperdht`/`hyperswarm`, the peers run a Noise handshake (an
+> **IK**-style pattern fits the "I looked up your key in the DHT, now I'm dialing you" model) to
+> authenticate and establish an encrypted, forward-secret channel — *before* any application data flows. The
+> primitives are Ed25519/X25519/BLAKE2b/ChaCha20-Poly1305 via `sodium-native`. Being able to say "Noise IK,
+> because the dialer already has the responder's static key from the DHT lookup" is a top-tier interview answer.
+
+## 5.7 Lab — signatures, key exchange, AEAD, and a mini DH handshake
+
+---
+
+### Goal
+
+Use real, production primitives to (1) sign and verify like a Hypercore writer, (2) perform an X25519 key
+exchange and confirm both sides derive the same secret, (3) AEAD-encrypt with tamper detection, and (4) sketch the
+shape of a Noise-style handshake.
+
+### Setup
+
+```
+npm install sodium-native
+```
+
+`sodium-native` is libsodium bindings — the exact crypto layer under Hypercore. (If it fails to build
+in your environment, Node's built-in `crypto` also supports Ed25519/X25519; the concepts are identical.)
+
+### Step 1 — Ed25519 sign & verify (the "single writer" proof)
+
+```
+// sign.js
+const sodium = require('sodium-native');
+
+// generate a signing keypair
+const pk = Buffer.alloc(sodium.crypto_sign_PUBLICKEYBYTES); // 32
+const sk = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES); // 64
+sodium.crypto_sign_keypair(pk, sk);
+
+const message = Buffer.from('append: block #42');
+const sig = Buffer.alloc(sodium.crypto_sign_BYTES);   // 64
+sodium.crypto_sign_detached(sig, message, sk);
+
+const ok = sodium.crypto_sign_verify_detached(sig, message, pk);
+console.log('signature valid:', ok);
+
+// tamper -> verification fails (integrity + authenticity)
+const forged = Buffer.from('append: block #43');
+console.log('forged valid  :', sodium.crypto_sign_verify_detached(sig, forged, pk));
+```
+
+### Step 2 — X25519 key exchange (two strangers, one secret)
+
+```
+// dh.js
+const sodium = require('sodium-native');
+
+function keypair() {
+  const pk = Buffer.alloc(sodium.crypto_kx_PUBLICKEYBYTES);
+  const sk = Buffer.alloc(sodium.crypto_kx_SECRETKEYBYTES);
+  sodium.crypto_kx_keypair(pk, sk);
+  return { pk, sk };
+}
+
+const alice = keypair();
+const bob = keypair();
+
+// each derives session keys from own secret + peer's public key
+const aRx = Buffer.alloc(sodium.crypto_kx_SESSIONKEYBYTES);
+const aTx = Buffer.alloc(sodium.crypto_kx_SESSIONKEYBYTES);
+const bRx = Buffer.alloc(sodium.crypto_kx_SESSIONKEYBYTES);
+const bTx = Buffer.alloc(sodium.crypto_kx_SESSIONKEYBYTES);
+
+sodium.crypto_kx_client_session_keys(aRx, aTx, alice.pk, alice.sk, bob.pk);
+sodium.crypto_kx_server_session_keys(bRx, bTx, bob.pk, bob.sk, alice.pk);
+
+// alice's TX key == bob's RX key  -> shared secret agreed over a public channel
+console.log('keys match:', aTx.equals(bRx) && bTx.equals(aRx));
+```
+
+### Step 3 — AEAD encryption with tamper detection
+
+```
+// aead.js
+const sodium = require('sodium-native');
+
+const key = Buffer.alloc(sodium.crypto_aead_chacha20poly1305_ietf_KEYBYTES);
+sodium.randombytes_buf(key);
+const nonce = Buffer.alloc(sodium.crypto_aead_chacha20poly1305_ietf_NPUBBYTES);
+sodium.randombytes_buf(nonce); // MUST be unique per message under a key
+
+const plaintext = Buffer.from('secret peer payload');
+const ad = Buffer.from('msg-type:3'); // associated data: authenticated, not encrypted
+const ct = Buffer.alloc(plaintext.length + sodium.crypto_aead_chacha20poly1305_ietf_ABYTES);
+
+sodium.crypto_aead_chacha20poly1305_ietf_encrypt(ct, plaintext, ad, null, nonce, key);
+
+const out = Buffer.alloc(ct.length - sodium.crypto_aead_chacha20poly1305_ietf_ABYTES);
+sodium.crypto_aead_chacha20poly1305_ietf_decrypt(out, null, ct, ad, nonce, key);
+console.log('decrypted:', out.toString());
+
+// flip one ciphertext byte -> decrypt throws (the Poly1305 tag fails)
+ct[0] ^= 0xff;
+try {
+  sodium.crypto_aead_chacha20poly1305_ietf_decrypt(out, null, ct, ad, nonce, key);
+  console.log('tamper undetected (BAD)');
+} catch {
+  console.log('tamper detected: decryption rejected ✅');
+}
+```
+
+### Step 4 — sketch a Noise-style handshake
+
+This is a *conceptual* 2-message exchange (not a spec-compliant Noise impl) to show how DH + hashing
+compose into a session. Each side mixes ephemeral DH output into a running hash to derive a shared key.
+
+```
+// mini-noise.js — illustrative only; use the 'noise-protocol' / hyperswarm libs for real
+const sodium = require('sodium-native');
+const hash = (b) => { const o = Buffer.alloc(32); sodium.crypto_generichash(o, b); return o; };
+
+function eph() {
+  const pk = Buffer.alloc(32), sk = Buffer.alloc(32);
+  sodium.crypto_box_keypair(pk, sk); return { pk, sk };
+}
+function dh(sk, pk) {
+  const out = Buffer.alloc(32);
+  sodium.crypto_scalarmult(out, sk, pk); return out;
+}
+
+const i = eph(), r = eph();        // initiator + responder ephemerals
+// -> e   : initiator sends its ephemeral public key
+// <- e   : responder sends its ephemeral public key
+// both compute the same DH(e_i, e_r) and mix it into a session key
+const kI = hash(dh(i.sk, r.pk));
+const kR = hash(dh(r.sk, i.pk));
+console.log('handshake keys match:', kI.equals(kR));
+console.log('(real Noise also mixes static keys + transcript hash for auth)');
+```
+
+### Experiments
+
+- In Step 3, reuse the same nonce for two messages. Crypto won't error, but you've just broken the cipher's security — this is why nonce management is the #1 AEAD footgun. Note how real protocols derive per-message nonces from a counter.
+- In Step 4, generate *fresh* ephemerals each run and confirm the derived key changes every time — that's forward secrecy in action.
+- Look up the `noise-protocol` npm package and identify which functions correspond to the XX vs IK patterns.
+
+## 5.8 Self-check & interview drill
+
+- I can map each primitive (Ed25519, X25519, AEAD, BLAKE2b) to the job it does.
+- I signed and verified a message and watched a forged one fail.
+- I ran an X25519 exchange and confirmed both sides derived the same secret.
+- I can explain Noise patterns and why IK suits DHT-based dialing.
+
+---
+
+<!-- lesson: fm-day6 · https://p2pbuilders.com/learn/fm-day6.html -->
+
+# Day 06: High-Performance JS Networking
+
+*The event loop, buffers, backpressure, and the allocation discipline that separates a toy from a relay.*
+
+> ⏱ ~90 min · theory 45 / lab 45
+
+You can know every protocol and still write a P2P node that melts under load. Performance in Node networking is
+mostly about three things: respecting the **event loop**, managing **buffers** without
+drowning the garbage collector, and honoring **backpressure** so a fast sender can't overwhelm a slow
+consumer. This chapter is where the relay-and-throughput intuition that interviewers probe actually lives.
+
+## 6.1 The event loop is your whole performance model
+
+Node runs your JavaScript on a **single thread**. I/O (sockets, files) is handed off to libuv and
+completes asynchronously, but every callback, every `data` handler, every bit of parsing runs on that one
+thread. The rule that follows is absolute: **never block the loop**. A synchronous JSON.parse of a huge
+payload, a tight CPU loop, a synchronous crypto call on every packet — each one stalls *all* connections, not
+just one. Throughput collapses not because the network is slow but because the loop is busy.
+
+- Keep per-event work small and bounded. Offload heavy CPU (large hashing, compression) to a `worker_thread` or a native addon that releases the loop.
+- Prefer streaming/incremental parsing over "buffer the whole thing then parse."
+- Watch out for accidental `O(n²)`: repeated `Buffer.concat` on a growing buffer is a classic one (you'll fix it in the lab).
+
+> Mental model
+> Think of the event loop as a single cashier serving every customer. The cashier is extremely fast, but if you ask
+> them to do long division by hand for one customer, the entire queue waits. Your job is to keep every interaction
+> short and push the long division elsewhere.
+
+## 6.2 Buffers and the GC tax
+
+Every `Buffer` you allocate in a hot path is future work for the garbage collector. Under high packet
+rates, allocation churn causes GC pauses that show up as latency spikes and jitter. The disciplines that matter:
+
+- **`Buffer.allocUnsafe(n)`** skips zero-filling — faster when you're about to overwrite every byte anyway (e.g. you're about to copy a frame in). Use `Buffer.alloc` only when you need the zeroes. Never expose an `allocUnsafe` buffer's uninitialized tail to the wire.
+- **Reuse buffers.** A pre-allocated read buffer or a small pool avoids per-message allocation. The two-pass `preencode/encode` you saw in `compact-encoding` exists precisely so the library can write into one correctly-sized buffer instead of growing and reallocating.
+- **Slice, don't copy.** `buf.subarray(a, b)` returns a view sharing the same memory — no allocation. `Buffer.from(buf)` or `.slice()`-then-copy duplicates. Use views when the lifetime is safe; copy only when you must retain data past the read buffer's reuse.
+
+> Holepunch note
+> This is exactly the discipline a relay like a HiveRelay node lives or dies by. A relay forwards huge numbers of
+> small frames; if each forwarded frame allocates a fresh buffer and triggers a `concat`, GC pressure caps
+> your throughput long before bandwidth does. Pre-sized read buffers, `subarray` views for forwarding, and
+> bounded per-event work are what let a single Node process push serious packet rates.
+
+## 6.3 Backpressure: the rule everyone forgets
+
+`socket.write(chunk)` returns a boolean. When it returns `false`, the kernel/stream buffer is
+full and you must **stop writing** until the `'drain'` event fires. Ignore this and Node
+happily queues your data in memory — unbounded — until the process balloons and dies. A fast producer feeding a slow
+socket is the most common way a P2P node runs out of memory.
+
+The clean solutions: use `stream.pipe()` (which handles backpressure for you), or `pipeline()`,
+or honor the `write`/`'drain'` contract manually. Async iterators (`for await...of`
+over a readable) also propagate backpressure naturally.
+
+## 6.4 Measuring: latency vs throughput
+
+Two different numbers people constantly conflate:
+
+- **Throughput** — bytes or messages per second. Bounded by per-message CPU cost, allocation, and bandwidth.
+- **Latency** — time for one message to make the trip. Bounded by round-trips, queueing, and event-loop delay.
+
+You can have great throughput and terrible tail latency (big batches, long GC pauses) or low latency and poor
+throughput (tiny unbatched writes with per-message overhead). Always measure **percentiles** (p50, p99),
+never just the mean — the mean hides exactly the stalls that matter. `perf_hooks.monitorEventLoopDelay()`
+quantifies how much the loop itself is the bottleneck.
+
+## 6.5 Lab — find and fix the throughput killers
+
+---
+
+### Goal
+
+Measure three real performance effects: (1) the `Buffer.concat` `O(n²)` trap vs a
+pre-sized buffer, (2) `allocUnsafe` vs `alloc` in a hot loop, and (3) backpressure on a TCP
+socket. You'll produce numbers, not just theory.
+
+### Step 1 — the accumulating-concat trap
+
+```
+// concat-trap.js — why naive reassembly is O(n^2)
+const { performance } = require('perf_hooks');
+const CHUNKS = 20000;
+const chunk = Buffer.allocUnsafe(64);
+
+// BAD: concat the whole growing buffer on every chunk
+let t = performance.now();
+let acc = Buffer.alloc(0);
+for (let i = 0; i < CHUNKS; i++) acc = Buffer.concat([acc, chunk]);
+console.log('concat-each-time :', (performance.now() - t).toFixed(1), 'ms');
+
+// GOOD: collect references, concat ONCE at the end
+t = performance.now();
+const parts = [];
+for (let i = 0; i < CHUNKS; i++) parts.push(chunk);
+const joined = Buffer.concat(parts);
+console.log('collect-then-join:', (performance.now() - t).toFixed(1), 'ms');
+
+// BEST when total size known: one allocation, copy into it
+t = performance.now();
+const dst = Buffer.allocUnsafe(CHUNKS * 64);
+for (let i = 0; i < CHUNKS; i++) chunk.copy(dst, i * 64);
+console.log('presized-copy    :', (performance.now() - t).toFixed(1), 'ms');
+```
+
+```
+node concat-trap.js
+// concat-each-time : 3380.0 ms    <- quadratic; explodes with size
+// collect-then-join:    2.3 ms     <- linear
+// presized-copy    :    6.9 ms     <- linear, one allocation
+```
+
+The exact numbers vary by machine, but the *shape* is the lesson: the naive version is *hundreds to
+thousands* of times slower and gets worse as the buffer grows. This is the framing decoder from Day 4 done wrong.
+
+### Step 2 — allocUnsafe vs alloc in a hot path
+
+```
+// alloc-bench.js
+const { performance } = require('perf_hooks');
+const N = 2_000_000, SIZE = 256;
+
+let t = performance.now();
+for (let i = 0; i < N; i++) { const b = Buffer.alloc(SIZE); b[0] = 1; }
+console.log('alloc      :', (performance.now() - t).toFixed(0), 'ms');
+
+t = performance.now();
+for (let i = 0; i < N; i++) { const b = Buffer.allocUnsafe(SIZE); b[0] = 1; }
+console.log('allocUnsafe:', (performance.now() - t).toFixed(0), 'ms');
+
+// BEST: one reusable buffer, no per-iteration allocation at all
+t = performance.now();
+const reusable = Buffer.allocUnsafe(SIZE);
+for (let i = 0; i < N; i++) { reusable[0] = 1; }
+console.log('reused     :', (performance.now() - t).toFixed(0), 'ms');
+```
+
+Zero-filling (`alloc`) costs measurable time at scale, and *not allocating at all* wins biggest.
+In a real reader you keep one read buffer and parse out of it.
+
+### Step 3 — backpressure on a real socket
+
+```
+// backpressure.js — a server that floods, a client that reads slowly
+const net = require('net');
+
+const server = net.createServer((socket) => {
+  const payload = Buffer.allocUnsafe(64 * 1024); // 64 KB
+  let sent = 0, blocked = 0;
+
+  function pump() {
+    while (sent < 2000) {
+      const ok = socket.write(payload); // returns false when buffer is full
+      sent++;
+      if (!ok) {                       // BACKPRESSURE: stop and wait for drain
+        blocked++;
+        socket.once('drain', pump);     // resume only when flushed
+        return;
+      }
+    }
+    console.log(`done: sent ${sent} chunks, paused ${blocked} times for drain`);
+    socket.end();
+  }
+  pump();
+});
+
+server.listen(8124, () => {
+  const client = net.connect(8124);
+  let received = 0;
+  client.on('data', (d) => {
+    received += d.length;
+    client.pause();                       // simulate a slow consumer
+    setTimeout(() => client.resume(), 1);
+  });
+  client.on('end', () => {
+    console.log(`client received ${(received / 1024 / 1024).toFixed(1)} MB`);
+    server.close();
+  });
+});
+```
+
+```
+node backpressure.js
+// done: sent 2000 chunks, paused 80+ times for drain
+// client received 125.0 MB
+```
+
+The "paused for drain" count is the system protecting itself. Delete the `if (!ok)` branch and keep
+writing regardless: memory usage climbs without bound because Node queues everything you hand it. *That* is the
+bug behind most "my P2P node leaks memory under load" reports.
+
+### Experiments
+
+- In Step 1, raise `CHUNKS` to 40000 and watch the concat time roughly quadruple (4×), confirming `O(n²)` — while the other two only double.
+- In Step 3, log `socket.writableLength` each time `write` returns false to see the high-water mark Node is enforcing.
+- Add `const h = require('perf_hooks').monitorEventLoopDelay(); h.enable();` around a blocking loop and read `h.max` to quantify a stall in milliseconds.
+
+## 6.6 Self-check & interview drill
+
+- I can explain why a single blocking call hurts every connection.
+- I measured the `O(n²)` concat trap and the pre-sized-buffer fix.
+- I know when `allocUnsafe` is appropriate and its hazard.
+- My socket lab pauses for `'drain'` and I understand what breaks without it.
+
+---
+
+<!-- lesson: fm-day7 · https://p2pbuilders.com/learn/fm-day7.html -->
+
+# Day 07: Profiling, Optimization & Integration
+
+*Flame graphs that prove your optimization worked — then build the whole stack end to end.*
+
+> ⏱ ~2 hrs · theory 40 / capstone 80
+
+Optimization without measurement is superstition. Today you learn to *find* the bottleneck before touching
+code, then you assemble everything from Days 1–6 into a single working P2P node: DHT-style discovery, a Noise-style
+handshake, length-prefixed binary framing, and verified message exchange. This is also your interview rehearsal —
+the capstone *is* the system-design answer.
+
+## 7.1 Measure first: the profiling toolkit
+
+| Tool | What it shows | When to reach for it |
+|---|---|---|
+| `node --prof` | V8 sampling profile → process with `--prof-process` | First look at where CPU time goes, zero deps |
+| `node --cpu-prof` | Writes a `.cpuprofile` for Chrome DevTools | Visual flame graph in a familiar UI |
+| `clinic doctor` | Diagnoses the *kind* of problem (CPU, I/O, GC, event-loop) | "It's slow and I don't know why" |
+| `clinic flame` / `0x` | Flame graph of stack frames by time | Pinpoint the hot function |
+| `clinic bubbleprof` | Async operation flow & latency | Async/await and I/O latency chains |
+| `perf_hooks` | Precise in-process timing & event-loop delay | Targeted micro-measurements & CI gates |
+
+### Reading a flame graph
+
+The x-axis is **not time** — it's the share of samples a function (and its callees) appeared in. Width
+= cost. Height = call-stack depth. You hunt for **wide plateaus**: a single wide frame is a function
+burning CPU directly; a wide frame with narrow children is the leaf where the time actually goes. Optimizing a narrow
+frame, however slow it feels, moves nothing. *Wide first, always.*
+
+> The discipline
+> Measure → form a hypothesis about the widest frame → change one thing → measure again. If the flame graph didn't
+> get narrower where you expected, revert. Most "optimizations" made without this loop are noise or regressions.
+
+## 7.2 The optimization order of operations
+
+1. **Algorithm first.** An `O(n²)` → `O(n)` fix (the Day 6 concat trap) beats any micro-tuning.
+2. **Allocation second.** Cut buffer churn in hot paths; reuse and slice instead of copy.
+3. **Don't block the loop third.** Move heavy CPU off-thread; keep per-event work bounded.
+4. **Micro-optimize last,** only with a flame graph pointing at the exact frame.
+
+## 7.3 Lab — profile a deliberately slow path
+
+---
+
+### Goal
+
+Generate a CPU profile, read it, fix the hot spot, and confirm the win — the full measure-fix-measure loop.
+
+```
+// slow.js — a "message processor" with a hidden hot spot
+const { performance } = require('perf_hooks');
+
+function processMessages(n) {
+  let log = '';
+  for (let i = 0; i < n; i++) {
+    log += JSON.stringify({ id: i, ok: true }) + '\n'; // string += in a loop = O(n^2)-ish
+  }
+  return log.length;
+}
+
+const t = performance.now();
+console.log('len:', processMessages(200000));
+console.log('took:', (performance.now() - t).toFixed(0), 'ms');
+```
+
+```
+# profile it
+node --cpu-prof --cpu-prof-name=slow.cpuprofile slow.js
+# open slow.cpuprofile in Chrome DevTools (Performance tab) -> see the wide frame
+
+# or the zero-dependency route:
+node --prof slow.js
+node --prof-process isolate-*.log > profile.txt
+# inspect the "Summary" and "Bottom up (heavy) profile" sections
+```
+
+The profile fingers string concatenation / stringify as the wide frame. The fix is the same shape as Day 6:
+collect parts, join once.
+
+```
+// fast.js — same output, collect-then-join
+function processMessages(n) {
+  const parts = [];
+  for (let i = 0; i < n; i++) parts.push('{"id":' + i + ',"ok":true}');
+  return parts.join('\n').length;
+}
+```
+
+Re-profile and confirm the plateau shrank. *That's* the loop — never trust a fix you didn't re-measure.
+
+## 7.4 Capstone — a complete P2P node
+
+Now we wire the week together. This single program runs a tiny in-memory "DHT" to discover a peer's address, runs
+an X25519 handshake to derive a shared key, then exchanges **length-prefixed, AEAD-encrypted** binary
+messages — the whole Holepunch-shaped pipeline in one file, using only Node built-ins plus `sodium-native`.
+
+---
+
+### What it integrates
+
+- **Day 1/3:** a registry/rendezvous resolves a topic → peer address (DHT discovery, condensed).
+- **Day 5:** X25519 key agreement → a shared AEAD key (the handshake).
+- **Day 4:** length-prefixed varint framing over a UDP/stream boundary.
+- **Day 5:** ChaCha20-Poly1305 AEAD on every message, with tamper rejection.
+- **Day 6:** bounded per-event work, slice-not-copy framing, no concat-in-loop.
+
+### The capstone (run with `node capstone.js`)
+
+```
+// capstone.js — discovery + handshake + framed encrypted messaging, in-process
+const sodium = require('sodium-native');
+const EventEmitter = require('events');
+
+// ---------- Day 4: varint + length-prefix framing ----------
+function encodeVarint(v) {
+  const b = [];
+  while (v > 0x7f) { b.push((v & 0x7f) | 0x80); v = Math.floor(v / 128); }
+  b.push(v & 0x7f); return Buffer.from(b);
+}
+function decodeVarint(buf, off = 0) {
+  let r = 0, s = 0, p = off;
+  while (true) {
+    const x = buf[p++]; if (x === undefined) throw new Error('incomplete');
+    r += (x & 0x7f) * Math.pow(2, s); if ((x & 0x80) === 0) break; s += 7;
+  }
+  return { value: r, bytesRead: p - off };
+}
+class Framer extends EventEmitter {
+  constructor() { super(); this.buf = Buffer.alloc(0); }
+  push(chunk) {
+    this.buf = Buffer.concat([this.buf, chunk]);
+    while (this.buf.length) {
+      let h; try { h = decodeVarint(this.buf); } catch { return; }
+      const total = h.bytesRead + h.value;
+      if (this.buf.length < total) return;
+      this.emit('message', Buffer.from(this.buf.subarray(h.bytesRead, total)));
+      this.buf = this.buf.subarray(total);
+    }
+  }
+}
+const frame = (p) => Buffer.concat([encodeVarint(p.length), p]);
+
+// ---------- Day 5: handshake + AEAD ----------
+function kxKeypair() {
+  const pk = Buffer.alloc(sodium.crypto_kx_PUBLICKEYBYTES);
+  const sk = Buffer.alloc(sodium.crypto_kx_SECRETKEYBYTES);
+  sodium.crypto_kx_keypair(pk, sk); return { pk, sk };
+}
+const A_BYTES = sodium.crypto_aead_chacha20poly1305_ietf_ABYTES;
+const N_BYTES = sodium.crypto_aead_chacha20poly1305_ietf_NPUBBYTES;
+function seal(key, counter, msg) {
+  const nonce = Buffer.alloc(N_BYTES); nonce.writeUInt32LE(counter, 0); // per-message nonce
+  const ct = Buffer.alloc(msg.length + A_BYTES);
+  sodium.crypto_aead_chacha20poly1305_ietf_encrypt(ct, msg, null, null, nonce, key);
+  return ct;
+}
+function open(key, counter, ct) {
+  const nonce = Buffer.alloc(N_BYTES); nonce.writeUInt32LE(counter, 0);
+  const out = Buffer.alloc(ct.length - A_BYTES);
+  sodium.crypto_aead_chacha20poly1305_ietf_decrypt(out, null, ct, null, nonce, key);
+  return out;
+}
+
+// ---------- Day 1/3: a trivial discovery registry ----------
+const registry = new Map(); // topic -> { inbox: Framer, key, counter }
+
+function makePeer(name, topic) {
+  const kp = kxKeypair();
+  const inbox = new Framer();
+  const peer = { name, topic, kp, inbox, key: null, rxCounter: 0, txCounter: 0, partner: null };
+  registry.set(name, peer);
+  return peer;
+}
+
+// "send" = hand framed bytes to the partner's inbox (stands in for the wire)
+function send(from, payload) {
+  const ct = seal(from.key, from.txCounter, payload);
+  from.txCounter++;
+  from.partner.inbox.push(frame(ct)); // length-prefixed encrypted frame
+}
+
+// ---------- wire it together ----------
+const alice = makePeer('alice', 'chat-42');
+const bob = makePeer('bob', 'chat-42');
+alice.partner = bob; bob.partner = alice;
+
+// discovery + handshake: derive a shared AEAD key from kx
+function handshake(client, server) {
+  const cRx = Buffer.alloc(32), cTx = Buffer.alloc(32);
+  const sRx = Buffer.alloc(32), sTx = Buffer.alloc(32);
+  sodium.crypto_kx_client_session_keys(cRx, cTx, client.kp.pk, client.kp.sk, server.kp.pk);
+  sodium.crypto_kx_server_session_keys(sRx, sTx, server.kp.pk, server.kp.sk, client.kp.pk);
+  // use one direction's key for both here (demo); real protocols key each direction
+  client.key = cTx; server.key = sRx; // cTx === sRx
+  return cTx.equals(sRx);
+}
+console.log('handshake ok:', handshake(alice, bob));
+
+// bob decrypts and verifies each framed message he receives
+bob.inbox.on('message', (ct) => {
+  try {
+    const msg = open(bob.key, bob.rxCounter, ct);
+    bob.rxCounter++;
+    console.log(`bob received: "${msg.toString()}"`);
+  } catch {
+    console.log('bob: message failed AEAD verification — dropped');
+  }
+});
+
+// alice sends three encrypted, framed messages
+send(alice, Buffer.from('hello bob'));
+send(alice, Buffer.from('this channel is encrypted'));
+send(alice, Buffer.from('and every frame is verified'));
+
+// tamper demo: flip a byte in a sealed frame and confirm it's rejected
+const good = seal(alice.key, 99, Buffer.from('evil'));
+good[2] ^= 0xff;
+bob.rxCounter = 99;
+bob.inbox.push(frame(good)); // -> "failed AEAD verification — dropped"
+```
+
+### Expected output
+
+```
+node capstone.js
+// handshake ok: true
+// bob received: "hello bob"
+// bob received: "this channel is encrypted"
+// bob received: "and every frame is verified"
+// bob: message failed AEAD verification — dropped
+```
+
+### From this skeleton to the real Holepunch stack
+
+Each hand-rolled piece maps to a production module: the registry → `hyperdht`; the kx handshake →
+the Noise/UDX transport inside `hyperswarm`; the framer → `compact-encoding` + the stream
+protocol; the append-and-verify pattern → `hypercore`. Rebuild the capstone using `hyperswarm`
+for real: join a topic, and on `'connection'` you get an already-encrypted, already-framed stream — every
+layer you just built by hand, productionized.
+
+### Experiments
+
+- Replace the in-process registry with the real `dgram` rendezvous from Day 3 so the two peers run as separate processes.
+- Swap the hand framer for `compact-encoding` structs (Day 4) and confirm identical behavior.
+- Profile the capstone under 100k messages with `--cpu-prof`; confirm no accidental concat-in-loop and that AEAD dominates CPU (as it should).
+
+## 7.5 Final interview drill
+
+- I can read a flame graph and explain why width matters more than height.
+- I follow the measure → hypothesize → change one thing → re-measure loop.
+- I know the optimization order: algorithm → allocation → don't block → micro.
+- My capstone discovers a peer, handshakes, and exchanges verified encrypted frames.
+- I can deliver the end-to-end "two peers connecting securely" answer cold.
+
+You've now built, by hand, a small version of every layer in a
+modern P2P stack — and you can explain each one and prove it runs. Walk into the interview and rebuild the capstone
+on a whiteboard from the five-layer summary above. That's the whole game.
+
+---
+
+# SECTION: P2P Foundations
+
+The ideas underneath everything we build — keys, logs, discovery, availability, trust. Start here if you are new to P2P.
+
+---
+
+<!-- lesson: handbook-intro · https://p2pbuilders.com/learn/handbook-intro.html -->
+
+# Why peer-to-peer
+
+Most of the internet you use is a client asking a server for permission. The
+server owns the data, the identity, the uptime, and the off switch. That model
+is convenient — and fragile. Companies die, terms change, accounts get locked,
+databases leak.
+
+Peer-to-peer flips the ownership:
+
+- **Your identity is a keypair you generate.** Nobody issues it, nobody can
+  revoke it.
+- **Your data is a log you sign.** Anyone can hold a copy; nobody can forge an
+  entry.
+- **The network is the users.** Peers find each other directly and replicate
+  each other's data. There is no origin server to take down.
+
+The tradeoffs are real, and this track does not hide them: availability is
+your problem now (see [Staying online without servers](#/learn/handbook-availability)),
+moderation has no root admin (see [Trust without a boss](#/learn/handbook-trust)),
+and "delete" means less than people expect.
+
+But the payoff is software that works *without asking permission* — the whole
+reason p2pbuilders exists. Everything on this board is a 32-byte public key
+talking to other 32-byte public keys.
+
+**Reading order:** this chapter, then
+[Identity is a keypair](#/learn/handbook-identity) →
+[Everything is a signed log](#/learn/handbook-logs) →
+[How peers find each other](#/learn/handbook-discovery) →
+[Staying online without servers](#/learn/handbook-availability) →
+[Trust without a boss](#/learn/handbook-trust).
+When you want to touch code, jump to the
+[Holepunch walkthroughs](#/learn) or the [Pear Baby Rooms](#/learn/rooms-baby-1) track.
+
+---
+
+<!-- lesson: handbook-identity · https://p2pbuilders.com/learn/handbook-identity.html -->
+
+# Identity is a keypair
+
+In a P2P system there is no "create account" endpoint. On first launch your app
+generates a random secret, derives an Ed25519 keypair from it, and that is you:
+
+- The **public key** is your global identity. You hand it out freely; peers use
+  it to verify everything you publish.
+- The **secret key** signs your writes. Anyone holding it *is* you.
+
+This is exactly how p2pbuilders works: each user is one Hypercore whose public
+key is their identity. Nicknames are just advisory profile records — the key is
+the name.
+
+## What this buys you
+
+- **Permissionless entry.** Nobody can stop you from generating a key.
+- **Global verifiability.** Any peer can check any record offline — no
+  authentication server in the loop.
+- **Pseudonymity by default.** A key says nothing about you until you attach
+  something to it.
+
+## What it costs you
+
+- **No recovery.** Lose the secret, lose the identity. There is no "forgot
+  password". Back up the key material (p2pbuilders stores it mode 0600 on
+  disk; the web build keeps it in local storage — export it).
+- **No revocation.** A leaked key is a stolen identity. The best you can do is
+  publish from a new key and tell people.
+- **Sybils are free.** Anyone can mint a million keys. Anti-spam has to come
+  from somewhere else — cost (proof-of-work), time (reputation aging), or
+  curation (blocklists). See [Trust without a boss](#/learn/handbook-trust).
+
+## Practical rules we follow
+
+1. One key per app, derived from one stored primary secret (Corestore does the
+   derivation — see the [Corestore walkthrough](#/learn/hp-corestore)).
+2. Treat "the user typed a nickname" as decoration, never as identity.
+3. Show short key prefixes in the UI, full keys on demand — people verify by
+   comparing prefixes out-of-band.
+
+---
+
+<!-- lesson: handbook-logs · https://p2pbuilders.com/learn/handbook-logs.html -->
+
+# Everything is a signed log
+
+The core data structure of this whole ecosystem is embarrassingly simple: an
+**append-only list of blocks, signed by one author**. That is a Hypercore.
+
+Why append-only?
+
+- **Sync is trivial.** "I have 41 entries, you have 38, here are 3 more."
+  Compare lengths, ship the tail. No diffing, no merge conflicts *within* a log.
+- **Verification is built in.** Each block is covered by the author's
+  signature, so replicas can relay each other's copies without being trusted.
+- **History is honest.** You can add, you cannot silently rewrite.
+
+## From logs to app state
+
+A log is not an app. The move that makes it one is the **fold**: every peer
+replays every log it follows through a pure reducer into a local view.
+
+```
+for each op in each followed log (any order):
+  if valid(op): view = apply(view, op)
+```
+
+p2pbuilders' ops are `post`, `comment`, `vote`, `edit`, `tombstone`,
+`follow`, `block`, `profile`… The feed you see is nothing but a fold of
+every author log you replicate, indexed into a local database
+([Hyperbee](#/learn/hp-hyperbee)).
+
+Two rules make folds sane:
+
+1. **Ops reference, never contain.** A comment points at its parent by id; a
+   vote points at its target. The fold stitches the graph together.
+2. **The fold must converge.** Whatever order ops arrive in, peers that have
+   the same set of ops must compute the same view. Last-write-wins with a
+   deterministic tiebreaker covers most records (see
+   [Data patterns](#/learn/pattern-data)).
+
+## Delete is a lie (sort of)
+
+You cannot unappend. "Delete" in log-world is a **tombstone** op that tells
+conforming indexers to hide the target. The signed history remains in every
+replica. Design for it: say "hidden", not "erased", and never put secrets in a
+log.
+
+---
+
+<!-- lesson: handbook-discovery · https://p2pbuilders.com/learn/handbook-discovery.html -->
+
+# How peers find each other
+
+There is no server, so who do you connect to? Discovery happens in layers:
+
+## 1. The DHT
+
+Hyperswarm runs a global **distributed hash table** — millions of nodes, each
+holding a slice of a big lookup space. You announce yourself under a 32-byte
+**topic**; anyone who looks up that topic learns your address and holepunches a
+direct, encrypted connection to you. (NAT traversal is the hard part; the DHT
+brokers the punch. That is the [Hyperswarm walkthrough](#/learn/hp-hyperswarm).)
+
+## 2. Topics are rendezvous points
+
+A topic is just a hash both sides can compute:
+
+```
+topic = blake2b('p2pbuilders:board:v1:front')
+```
+
+Same string, same hash, same meeting point. Apps derive topics from anything
+shared: an app name, a board name, a drive key, an invite code. p2pbuilders
+joins one topic per board plus a global roster topic.
+
+## 3. Gossip fills in the graph
+
+The DHT finds you *some* peers; gossip finds you *the rest*. Once connected,
+peers exchange what they know — in our case an announce channel that shares
+every author pubkey seen on the board. Join with one connection, and within
+seconds you are tracking every author's log transitively: C learns about A
+from B without ever meeting A on the DHT.
+
+## Rules of thumb
+
+- **Version your topics** (`:v1:`) so a breaking protocol change moves to a
+  clean namespace instead of confusing old peers.
+- **Gossip keys, not content.** Content replicates over verified logs; gossip
+  only needs to spread *pointers* (pubkeys, drive keys). Fake pointers cost
+  nothing because every log self-verifies.
+- **Expect churn.** Peers vanish constantly. Discovery is a continuous
+  process, not a boot step.
+
+---
+
+<!-- lesson: handbook-availability · https://p2pbuilders.com/learn/handbook-availability.html -->
+
+# Staying online without servers
+
+The most common gotcha in P2P: you publish something, close your laptop, and it
+is gone. Data lives on peers; if no peer holding it is online, nobody can fetch
+it. We call this the **laptop-lid problem**.
+
+## The honest answers
+
+1. **More readers = more replicas.** Anyone who read your post holds a copy and
+   can serve it. Popular content stays alive on its own. Unpopular content —
+   the long tail — does not.
+2. **Always-on peers.** *Some* machine has to be awake. The trick is keeping it
+   a dumb peer instead of letting it become a server.
+
+## Relays: dumb storage, not authority
+
+[HiveRelay](https://github.com/bigdestiny2/P2P-Hiverelay) is our answer: a
+fleet of always-on nodes that will **pin** (replicate and re-serve) any
+Hypercore you ask them to. The crucial design line:
+
+- A relay **cannot forge** anything — logs are author-signed, so a relay is
+  just a mirror.
+- A relay **does not index, validate or moderate** — it stores bytes. All
+  meaning lives at the edges.
+- Losing every relay degrades availability, never integrity.
+
+p2pbuilders seeds your log (and every author you track) to the relay fleet on
+boot — the `relays` command in the TUI shows who is pinning you. Posts
+survive with 5+ relays across 3 continents even when every author sleeps.
+
+## Design guidance
+
+- Treat relays as a *cache tier*, not a dependency. The app must work
+  peer-to-peer with zero relays reachable.
+- Seed **everything the data needs to be reconstructed** — a lesson we learned
+  the hard way with Hyperdrives; see
+  [Seed the blobs core](#/learn/eco-blobs).
+- Re-announce periodically. Pins age out; a live peer re-requesting keeps them
+  fresh.
+
+---
+
+<!-- lesson: handbook-trust · https://p2pbuilders.com/learn/handbook-trust.html -->
+
+# Trust without a boss
+
+A permissionless network has no admin table. Anyone can mint keys and write.
+So how is p2pbuilders not a spam firehose? Layers — each weak alone, useful
+together:
+
+## Layer 1: make writing cost something (proof-of-work)
+
+Every post, comment and board-create carries a hashcash stamp: the author must
+find a nonce whose hash meets a difficulty target. ~80ms for a post, ~20ms for
+a comment — unnoticeable for a human, expensive at spam volume. Peers simply
+refuse to index un-worked ops.
+
+The subtlety: **PoW is an indexing policy, not consensus.** Nothing stops a
+peer from accepting junk into its own view; the default policy just will not.
+More in [PoW and reputation: honest limits](#/learn/eco-antispam).
+
+## Layer 2: make influence take time (reputation)
+
+Votes are weighted by the voter's key:
+
+```
+rep(key)    = log2(1 + ageDays) * sqrt(1 + receivedUpvotes)
+voteWeight  = clamp(rep / 50, 0.02, 1.0)
+```
+
+A fresh key can vote (0.02 floor — day-one users are not muted) but cannot
+move rankings. Influence accrues with *age observed by the network* — not
+author-claimed timestamps, which could be backdated.
+
+## Layer 3: rate limits
+
+Indexers drop cores that exceed sane per-key rates (posts/hour,
+comments/hour, votes/hour). Replication stays cheap; indexing is the choke
+point.
+
+## Layer 4: chosen moderation (blocklists)
+
+Every user has a local blocklist. Anyone can *publish* theirs; anyone else can
+*subscribe*, adopting the curator's blocks. A handful of widely-subscribed
+curators produces de-facto moderation — but you picked your moderators, and
+you can unsubscribe. Nobody owns the board.
+
+## Be honest about the gaps
+
+Cross-voting rings defeat naive reputation (100 aged keys upvoting each other
+≈ 35 legit users' weight — we published the math in the spec). PoW slows
+spam; it does not stop a motivated attacker. Ship the layers, document the
+weaknesses, and keep the human escape hatch: curation.
+
+---
+
+# SECTION: Holepunch walkthroughs
+
+Hands-on tours of the building blocks: Pear, Bare, Hypercore, Hyperbee, Hyperdrive, Hyperswarm, Corestore, Autobase.
+
+---
+
+<!-- lesson: hp-pear · https://p2pbuilders.com/learn/hp-pear.html -->
+
+# Pear: run, stage, release, seed
+
+[Pear](https://docs.pears.com) is Holepunch's runtime for P2P applications:
+desktop and terminal apps that load **from a pear:// link** — peer-to-peer,
+not from a store or a CDN.
+
+## Run someone's app
+
+```
+npm i -g pear
+pear                      # first run bootstraps the runtime
+pear run pear://dqz1e6fwyrz1mxj7eqsmcar3hnegrj491t5hnqjm9mda9tz8dzfy
+```
+
+That last command is p2pbuilders itself: Pear resolves the key on the DHT,
+replicates the app's Hyperdrive from whoever seeds it, and runs it locally.
+
+## Anatomy of a Pear app
+
+A Pear app is a directory with a `package.json` carrying a `pear` field:
+
+```
+"pear": {
+  "name": "p2pbuilders",
+  "type": "terminal",
+  "main": "src/terminal/main.js"
+}
+```
+
+`type: "terminal"` gives you a TUI on [Bare](#/learn/hp-bare) — no browser,
+no Electron. Desktop GUI apps use the same flow with an HTML entry.
+
+## Ship your own
+
+```
+pear touch                          # mint a pear:// key (once per app)
+pear stage --no-ask pear://<key> .  # sync working tree → versioned build
+pear release pear://<key> .         # point the bare link at that build
+pear run pear://<key>               # anyone, anywhere
+```
+
+**Staging** publishes your tree as a Hyperdrive under the key. **Release**
+marks the version that a bare `pear run pear://<key>` resolves to — so you
+can stage experimental builds without breaking users.
+
+Two gotchas from our own staging sessions:
+
+- Paths with spaces can break tooling — symlink your checkout to
+  `/tmp/yourapp` and stage from there.
+- Your machine is the only seeder until someone else runs the app — keep the
+  process alive, or pin the drive on relays
+  ([Staying online](#/learn/handbook-availability)).
+
+Full docs: https://docs.pears.com
+
+---
+
+<!-- lesson: hp-bare · https://p2pbuilders.com/learn/hp-bare.html -->
+
+# Bare: the small JS runtime
+
+[Bare](https://github.com/holepunchto/bare) is a minimal JavaScript runtime:
+V8 plus a tiny native core, with everything else — fs, tcp, tty, crypto —
+shipped as **addon modules** instead of baked in. It is what Pear terminal
+apps and mobile embeddings actually run on.
+
+Why it matters for P2P:
+
+- **Small enough to embed.** Bare runs inside iOS/Android apps (bare-kit), so
+  the same backend that powers your desktop node runs on a phone.
+- **No monolith to wait on.** Modules version independently; the runtime
+  stays tiny.
+
+## Node-compatible-ish, by choice
+
+Bare mirrors Node's module shapes (`bare-fs` ≈ `fs`, `bare-process` ≈
+`process`, …). The trick for code that runs on **both** is conditional
+imports in `package.json`:
+
+```
+"imports": {
+  "#fs":      { "bare": "bare-fs",      "default": "./shims/node-fs.js" },
+  "#process": { "bare": "bare-process", "default": "./shims/node-process.js" }
+}
+```
+
+Then `require('#fs')` resolves to the right implementation per runtime.
+p2pbuilders isolates every platform touchpoint behind one `_rt.js` shim —
+that single decision is why the same backend boots under Node, Pear and
+bare-kit unmodified.
+
+## Try it
+
+```
+npm i bare bare-process
+./node_modules/bare/bin/bare app.js
+```
+
+In app code, detect the runtime when you must:
+
+```
+const process = (typeof Bare !== 'undefined')
+  ? require('bare-process')
+  : global.process
+```
+
+**Rule we live by:** never sprinkle runtime checks through app logic. One shim
+module owns the differences; everything else imports the shim.
+
+---
+
+<!-- lesson: hp-hypercore · https://p2pbuilders.com/learn/hp-hypercore.html -->
+
+# Hypercore: the signed append-only log
+
+[Hypercore](https://github.com/holepunchto/hypercore) is the primitive
+everything else builds on: an append-only list of binary blocks, signed by a
+single writer, replicable by anyone.
+
+```
+const Hypercore = require('hypercore')
+
+const core = new Hypercore('./storage')       // creates or reopens
+await core.ready()
+
+console.log(core.key.toString('hex'))         // public identity of this log
+console.log(core.length)                      // blocks so far
+
+await core.append(Buffer.from('hello'))       // only the key holder can do this
+const b = await core.get(0)                   // anyone with a replica can read
+```
+
+The things to internalize:
+
+- **One writer.** The keypair that created the core is the only thing that can
+  extend it. Multi-writer is a different layer
+  ([Autobase](#/learn/hp-autobase)).
+- **Everyone else replicates.** `core.get(i)` on a reader fetches the block
+  from any connected peer and **verifies it against the author's signature**
+  before handing it to you. Mirrors need zero trust.
+- **Sparse by default.** Readers download only the blocks they ask for — you
+  can index a 10k-entry log while fetching a fraction of it.
+
+## Wiring two peers
+
+Replication runs over any duplex stream; in practice you get streams from
+[Hyperswarm](#/learn/hp-hyperswarm):
+
+```
+swarm.on('connection', (socket) => core.replicate(socket))
+core.on('append', () => console.log('log grew to', core.length))
+```
+
+## How p2pbuilders uses it
+
+Each user = one Hypercore. Every action (post, comment, vote, profile…) is one
+encoded op appended to their own core. Nobody ever writes to anyone else's
+log — the "shared" board is a fold over many single-writer logs
+([Everything is a signed log](#/learn/handbook-logs)).
+
+Start here before Hyperbee/Hyperdrive: both are *just interpretations of a
+Hypercore*, and the whole stack makes sense once that clicks.
+
+---
+
+<!-- lesson: hp-hyperbee · https://p2pbuilders.com/learn/hp-hyperbee.html -->
+
+# Hyperbee: a database on a log
+
+[Hyperbee](https://github.com/holepunchto/hyperbee) is a B-tree encoded as
+Hypercore blocks: each `put` appends a node describing the tree change. The
+result is a **sorted key/value database with the replication properties of a
+log** — single writer, many verified readers, sparse download.
+
+```
+const Hypercore = require('hypercore')
+const Hyperbee = require('hyperbee')
+
+const bee = new Hyperbee(new Hypercore('./db'), {
+  keyEncoding: 'utf-8',
+  valueEncoding: 'json'
+})
+
+await bee.put('profile!alice', { nick: 'alice' })
+const node = await bee.get('profile!alice')     // { key, value } or null
+await bee.del('profile!alice')
+```
+
+## The idiom: key ranges are your tables
+
+There are no tables or secondary indexes — you *design* your keyspace so
+ordered scans answer your queries:
+
+```
+post!front!new!<invertedTs>!<id>   → post ref
+comment!<postId>!<ts>!<id>         → comment ref
+vote!<targetId>!<voter>            → direction
+```
+
+Then a prefix scan is a query:
+
+```
+for await (const { key, value } of bee.createReadStream({
+  gt: 'comment!abc!', lt: 'comment!abc!~'
+})) { /* every comment on post abc, in time order */ }
+```
+
+Trick worth stealing: **inverted timestamps** (`999…9 - ms`) make ascending
+scans return newest-first, so "latest 50 posts" is a limited range read.
+
+## Two ways to use it
+
+1. **Replicated bee** — the author writes, readers replicate and query
+   sparsely (a reader checking one key downloads ~log(n) blocks).
+2. **Local index** — a private bee as your app's query layer. This is
+   p2pbuilders: the indexer folds every followed Hypercore into a local
+   Hyperbee (`post!…`, `vote!…`, `rep!…`), and the UI only ever queries
+   the bee. Rebuildable state, ordered queries, no SQL dependency.
+
+---
+
+<!-- lesson: hp-hyperdrive · https://p2pbuilders.com/learn/hp-hyperdrive.html -->
+
+# Hyperdrive: a filesystem on two cores
+
+[Hyperdrive](https://github.com/holepunchto/hyperdrive) gives you a
+versioned file tree you can replicate like everything else. It is how Pear
+apps ship and how P2P sites (this app's web build included) are hosted.
+
+```
+const Corestore = require('corestore')
+const Hyperdrive = require('hyperdrive')
+
+const drive = new Hyperdrive(new Corestore('./storage'))
+await drive.ready()
+
+await drive.put('/index.html', Buffer.from('<h1>hi</h1>'))
+const buf = await drive.get('/index.html')
+for await (const entry of drive.list('/')) console.log(entry.key)
+
+console.log(drive.key.toString('hex'))   // share this — hyper://<key>/
+```
+
+A reader opens the same drive by key, replicates over swarm connections, and
+reads files sparsely — a 2GB drive costs a reader only the files they touch.
+Drives are versioned; `drive.checkout(n)` gives you an old snapshot.
+
+## The part everyone misses
+
+**A Hyperdrive is two Hypercores.**
+
+1. A **metadata core** — a [Hyperbee](#/learn/hp-hyperbee) mapping paths to
+   entries.
+2. A **content (blobs) core** — the actual file bytes.
+
+`drive.key` is the *metadata* key. Anything that pins "the drive by key" —
+a relay, a mirror script — may replicate metadata and never fetch the bytes.
+The drive looks alive (listings work!) but every read fails once the
+publisher goes offline.
+
+```
+const blobs = await drive.getBlobs()
+console.log(blobs.core.key.toString('hex'))   // pin THIS too
+```
+
+We shipped that bug and wrote it up:
+[Seed the blobs core, not just the metadata](#/learn/eco-blobs). If you host
+anything on drives, read it.
+
+---
+
+<!-- lesson: hp-hyperswarm · https://p2pbuilders.com/learn/hp-hyperswarm.html -->
+
+# Hyperswarm: find peers by topic
+
+[Hyperswarm](https://github.com/holepunchto/hyperswarm) answers "who else
+cares about this hash?" and hands you **encrypted, holepunched connections**
+to each of them. It is the networking layer for the entire stack.
+
+```
+const Hyperswarm = require('hyperswarm')
+const crypto = require('hypercore-crypto')
+
+const swarm = new Hyperswarm()
+
+// A topic is any 32 bytes both sides can derive.
+const topic = crypto.hash(Buffer.from('p2pbuilders:board:v1:front'))
+
+swarm.join(topic, { server: true, client: true })
+swarm.on('connection', (socket, info) => {
+  // socket is an encrypted duplex stream to a peer on the same topic.
+  socket.write('hello')
+  socket.on('data', (d) => console.log('peer says', d.toString()))
+})
+await swarm.flush()    // announced + initial lookups done
+```
+
+What you get for free:
+
+- **NAT traversal.** Both peers behind home routers still connect directly in
+  most cases — the DHT brokers the holepunch.
+- **Encryption + peer identity.** Every connection is a Noise channel;
+  `socket.remotePublicKey` cryptographically identifies the other end.
+- **Deduping.** One connection per peer even when you share many topics.
+
+## Usage patterns
+
+- **Core replication:** `swarm.on('connection', s => store.replicate(s))` —
+  every core in your [Corestore](#/learn/hp-corestore) syncs over every
+  socket. Hypercore's protocol multiplexes and only transfers cores both
+  sides know.
+- **Custom protocols:** speak your own messages over the socket (we run a
+  protomux "announce" channel gossiping author pubkeys —
+  [How peers find each other](#/learn/handbook-discovery)).
+- **Direct dial:** `swarm.joinPeer(pubkey)` connects to one specific peer
+  without a shared topic.
+
+Expect churn: connections drop, peers reappear with new addresses. Write your
+handler so any peer can vanish at any moment and nothing breaks.
+
+---
+
+<!-- lesson: hp-corestore · https://p2pbuilders.com/learn/hp-corestore.html -->
+
+# Corestore: many cores, one storage
+
+Real apps juggle many Hypercores: yours, every peer's you follow, metadata
+and blobs per drive. [Corestore](https://github.com/holepunchto/corestore)
+manages them under one storage directory and — the key feature — **derives
+your writable cores deterministically from one primary key**.
+
+```
+const Corestore = require('corestore')
+const store = new Corestore('./storage')
+
+// Writable: derived from the store's primary key + a name.
+const feed = store.get({ name: 'p2pbuilders/user' })
+await feed.ready()   // same name → same keypair, every launch
+
+// Read-only: someone else's core, by public key.
+const theirs = store.get(Buffer.from(theirKeyHex, 'hex'))
+```
+
+Why this matters:
+
+- **One secret to protect.** Back up the primary key and you have backed up
+  every identity the app derives. This is p2pbuilders' whole identity story:
+  primary key on disk (mode 0600), user core derived as
+  `(primaryKey, 'p2pbuilders/user')`.
+- **Namespaces compose.** `store.namespace('drafts').get({ name: 'log' })`
+  lets libraries create cores without colliding with yours.
+- **Replication is one call.**
+
+```
+swarm.on('connection', (socket) => store.replicate(socket))
+```
+
+Every core in the store syncs over that socket — but only cores **both sides
+already know the key for**. Replication never leaks keys; discovery of *which*
+cores exist is your app's job (gossip, invites, directories).
+
+Habit to build: open cores through the store everywhere — never construct a
+raw Hypercore with its own storage path once an app grows past hello-world.
+
+---
+
+<!-- lesson: hp-autobase · https://p2pbuilders.com/learn/hp-autobase.html -->
+
+# Autobase: many writers, one view
+
+Hypercore's superpower — one signed writer — is also its limit: how do five
+people edit one thing? [Autobase](https://github.com/holepunchto/autobase)
+is Holepunch's answer, and even when you do not use the library, its *shape*
+is how you should think about multi-writer.
+
+## The idea
+
+- Every participant writes only to **their own input core** (normal
+  single-writer Hypercores — nothing new to trust).
+- Autobase interleaves all inputs into one **causally ordered stream** (each
+  entry references the latest entries the writer had seen — a vector-clock-ish
+  ordering, with deterministic tiebreaks).
+- An **apply function** — pure, same on every peer — folds that stream into a
+  materialized view (often a [Hyperbee](#/learn/hp-hyperbee)).
+
+```
+const base = new Autobase(store, bootstrapKey, {
+  open:  (store) => store.get('view'),
+  apply: async (nodes, view, host) => {
+    for (const node of nodes) {
+      // node.value is one writer's entry; fold it into the view.
+      // host.addWriter(key) is how membership changes happen — in-band.
+    }
+  }
+})
+await base.append({ type: 'msg', text: 'hi' })   // writes to YOUR input
+```
+
+Same inputs ⇒ same order ⇒ same view, on every peer. When a writer's history
+arrives late, affected view state is recomputed — so **apply must be
+deterministic**: no clocks, no randomness, no network.
+
+## When you need it (and when you don't)
+
+p2pbuilders does *not* use Autobase — a board folds independent per-user logs
+where cross-user ordering barely matters (votes commute; comments hang off
+ids). We get convergence with a plain reducer.
+
+Reach for Autobase when the state itself is shared and order matters: a
+collaborative doc, a shared room roster, a game. That is exactly the
+[Storyteller: passing the pen](#/learn/storyteller-2) lesson.
+
+API details move — check https://docs.pears.com/building-blocks/autobase for
+current signatures. The mental model above is stable.
+
+---
+
+# SECTION: Storyteller & Pear Baby Rooms
+
+Our beginner lesson tracks. Baby Rooms takes you from zero to your first live room; Storyteller builds a real app one chapter at a time.
+
+---
+
+<!-- lesson: rooms-baby-1 · https://p2pbuilders.com/learn/rooms-baby-1.html -->
+
+# Pear Baby Rooms 1: your first room
+
+Baby Rooms is our from-absolute-zero track: each lesson is one sitting, ends
+with something alive on your screen, and introduces exactly one idea. Lesson
+one: **a room is just a topic two peers both joined.**
+
+## Build it
+
+```
+mkdir baby-room && cd baby-room
+npm init -y
+npm i hyperswarm hypercore-crypto bare bare-process bare-readline
+```
+
+`room.js`:
+
+```
+const Hyperswarm = require('hyperswarm')
+const crypto = require('hypercore-crypto')
+
+const name = process.argv[2] || 'baby-room-hello'
+const topic = crypto.hash(Buffer.from('baby-rooms:v1:' + name))
+
+const swarm = new Hyperswarm()
+const peers = new Set()
+
+swarm.join(topic, { server: true, client: true })
+swarm.on('connection', (socket) => {
+  peers.add(socket)
+  console.log('* peer joined (' + peers.size + ' online)')
+  socket.on('data', (d) => console.log('them:', d.toString().trim()))
+  socket.on('error', () => {})
+  socket.on('close', () => { peers.delete(socket); console.log('* peer left') })
+})
+
+process.stdin.on('data', (line) => {
+  for (const p of peers) p.write(line)
+})
+
+console.log('room "' + name + '" — waiting for peers…')
+```
+
+Run `node room.js secret-club` in two terminals (better: two machines, two
+networks). When `* peer joined` prints, type. You are chatting through an
+encrypted, holepunched, serverless connection.
+
+## What you just learned
+
+- The room **name never left your machines** — both sides hashed it into a
+  topic and met at the hash. Unguessable name ⇒ unguessable room.
+- There is **no room object anywhere**. "The room" is only the set of peers
+  currently joined to the topic. Close both terminals and it does not exist.
+- Messages here are ephemeral and unauthenticated — anyone in the room could
+  claim any name. Fixing that is
+  [lesson 2](#/learn/rooms-baby-2); making the room *remember* is
+  [lesson 3](#/learn/rooms-baby-3).
+
+---
+
+<!-- lesson: rooms-baby-2 · https://p2pbuilders.com/learn/rooms-baby-2.html -->
+
+# Pear Baby Rooms 2: who said that?
+
+Lesson 1's room has a flaw you can feel immediately: nothing ties a message to
+a sender. Anyone can write `alice: dinner is cancelled`. In P2P there is no
+server to ask who is who — so we do what the grown-up stack does:
+**every message is signed, and your keypair is your name.**
+([Identity is a keypair](#/learn/handbook-identity) is the theory version.)
+
+## Add identity
+
+```
+const crypto = require('hypercore-crypto')
+const fs = require('fs')
+
+// Keep the same identity across restarts: persist the keypair.
+function loadIdentity (path) {
+  if (fs.existsSync(path)) {
+    const seed = Buffer.from(fs.readFileSync(path, 'utf8'), 'hex')
+    return crypto.keyPair(seed)
+  }
+  const seed = crypto.randomBytes(32)
+  fs.writeFileSync(path, seed.toString('hex'), { mode: 0o600 })
+  return crypto.keyPair(seed)
+}
+
+const me = loadIdentity('./identity.key')
+console.log('you are', me.publicKey.toString('hex').slice(0, 8))
+```
+
+## Sign everything you send
+
+```
+function send (text) {
+  const payload = Buffer.from(JSON.stringify({ text, ts: Date.now() }))
+  const wire = JSON.stringify({
+    from: me.publicKey.toString('hex'),
+    payload: payload.toString('hex'),
+    sig: crypto.sign(payload, me.secretKey).toString('hex')
+  }) + '\n'
+  for (const p of peers) p.write(wire)
+}
+```
+
+## Verify everything you receive
+
+```
+function receive (line) {
+  const m = JSON.parse(line)
+  const payload = Buffer.from(m.payload, 'hex')
+  const ok = crypto.verify(payload, Buffer.from(m.sig, 'hex'),
+    Buffer.from(m.from, 'hex'))
+  if (!ok) return console.log('!! dropped a forged message')
+  const { text } = JSON.parse(payload.toString())
+  console.log(m.from.slice(0, 8) + ':', text)
+}
+```
+
+## What you just learned
+
+- **Verify on receive, always.** The socket being encrypted says nothing
+  about *authorship* — encryption is the envelope, the signature is the
+  handwriting.
+- The 8-char hex prefix is a real name: stable across restarts, impossible to
+  forge without the secret file. Nicknames can come later as signed
+  "profile" messages — decoration on top of the key, never a replacement.
+- Messages still vanish when the room empties. Next:
+  [a room that remembers](#/learn/rooms-baby-3).
+
+---
+
+<!-- lesson: rooms-baby-3 · https://p2pbuilders.com/learn/rooms-baby-3.html -->
+
+# Pear Baby Rooms 3: a room that remembers
+
+Rooms 1–2 are walkie-talkies: miss the moment, miss the message. Real apps
+remember. The P2P way is **not** a shared database — it is *everyone keeps
+their own signed log, and everyone replicates everyone else's*.
+([Everything is a signed log](#/learn/handbook-logs).)
+
+## Each peer writes their own log
+
+```
+const Corestore = require('corestore')
+const store = new Corestore('./room-data')
+
+const mine = store.get({ name: 'baby-rooms/chat' })
+await mine.ready()
+
+async function say (text) {
+  await mine.append(Buffer.from(JSON.stringify({ text, ts: Date.now() })))
+}
+```
+
+Hypercore signs every block for us — lesson 2's hand-rolled signatures come
+for free now.
+
+## Tell peers about your log, replicate theirs
+
+```
+swarm.on('connection', (socket) => {
+  store.replicate(socket)                       // sync every known core
+  socket.write(JSON.stringify({ core: mine.key.toString('hex') }) + '\n')
+  socket.on('data', (d) => {
+    for (const line of d.toString().split('\n')) {
+      if (!line.trim()) continue
+      const theirs = store.get(Buffer.from(JSON.parse(line).core, 'hex'))
+      theirs.ready().then(() => follow(theirs))
+    }
+  })
+})
+
+function follow (core) {
+  const print = async (i) =>
+    console.log(JSON.parse((await core.get(i)).toString()).text)
+  for (let i = 0; i < core.length; i++) print(i)      // history!
+  core.on('append', () => print(core.length - 1))     // live tail
+}
+```
+
+Start a room, chat, kill everything, restart: **history is still there.**
+Join late from a third machine: the first `follow` loop backfills everything
+you missed.
+
+## What you just learned
+
+- "The room's history" = the union of every member's log. No log is shared;
+  no write ever conflicts.
+- Latecomer catch-up is just reading logs from 0 — sync is length-compare,
+  the reason append-only wins ([the foundations chapter explains why](#/learn/handbook-logs)).
+- If everyone sleeps, the room is unreachable — the laptop-lid problem.
+  That is [availability](#/learn/handbook-availability), and relays fix it.
+
+You now hold the exact architecture of p2pbuilders — it is this lesson plus
+an indexer and anti-spam. Graduate to the
+[Storyteller track](#/learn/storyteller-1) to turn logs into a *designed* app.
+
+---
+
+<!-- lesson: storyteller-1 · https://p2pbuilders.com/learn/storyteller-1.html -->
+
+# Storyteller 1: a story is a log
+
+Storyteller is our app-design track. The app: people write stories together,
+one passage at a time, each author owning their words. Baby Rooms taught the
+plumbing; Storyteller teaches the **thinking** — because in P2P, your real
+design surface is not the database schema or the API. It is the **op schema**:
+the vocabulary of things a user can *say* into their log.
+
+## Design the ops before anything else
+
+A first pass for Storyteller:
+
+```
+story_create : { storyId, title, opening }
+passage      : { storyId, parent, text }     // parent = passage id it continues
+react        : { target, kind }              // ❤ a passage
+retract      : { target }                    // tombstone my own op
+profile      : { nick, bio }
+```
+
+Run every candidate op through four questions:
+
+1. **Is it self-contained?** An op is verified alone, possibly years later,
+   out of order. `passage` carries its `storyId` even though "context"
+   feels redundant — there is no session to remember it for you.
+2. **Does it reference or contain?** Reference by id (`parent`, `target`),
+   never embed copies. The fold stitches the graph.
+3. **Can the fold converge?** Two writers continue the same passage — is that
+   a conflict? No: store *both*, and the story **branches**. What looked like
+   a merge problem becomes the product's best feature. This mindset shift —
+   conflicts into structure — is the single most useful P2P design habit.
+4. **What happens on abuse?** Anyone can append `story_create` with your
+   story's id. First-writer-wins on the id, everyone else's ignored
+   ([sticky names](#/learn/pattern-data)) — decided in the schema, not
+   patched later.
+
+## Version from day one
+
+```
+{ v: 1, type: 'passage', ts: 1712345678901, payload: { … } }
+```
+
+Logs are forever — you cannot migrate other people's cores. The `v` byte is
+how readers three schema versions from now still parse your 2024 ops. Ignore
+unknown types and unknown versions politely; peers running old clients are a
+permanent fact of life.
+
+Next: several people, one story, and who holds the pen —
+[Storyteller 2](#/learn/storyteller-2).
+
+---
+
+<!-- lesson: storyteller-2 · https://p2pbuilders.com/learn/storyteller-2.html -->
+
+# Storyteller 2: passing the pen
+
+One story, five authors, no server. Who may write the next passage? This
+lesson exists because the answer picks your architecture — and because
+"whoever holds the pen" is secretly the same question every multi-writer P2P
+app must answer. ([Trust without a boss](#/learn/handbook-trust) is the
+general theory.)
+
+## Option A: don't coordinate — branch
+
+Everyone appends `passage` ops to their own log; the fold builds a tree.
+Two continuations of the same parent = two branches. Readers follow the
+branch they like; a story is really a *garden* of tellings.
+
+- No coordination, no waiting, works fully offline.
+- Perfect when parallel realities are acceptable — often they are better
+  than acceptable (this is question 3 from
+  [Storyteller 1](#/learn/storyteller-1) paying off).
+
+## Option B: soft convention — the pen token
+
+Keep branching *possible* but make turn-taking the norm: a
+`pass_pen { storyId, to }` op, honored by UIs (grey out the composer unless
+the fold says you hold the pen). Nothing *enforces* it — a rude client can
+still append — but every op is signed forever, and the fold can mark
+out-of-turn passages so readers see them for what they are. **Social
+contract + total visibility** replaces enforcement; most human-scale
+coordination needs nothing stronger.
+
+## Option C: real shared state — Autobase
+
+When the product demands one agreed sequence (one canonical story, a shared
+membership roster), you need causal ordering and deterministic apply across
+writers — exactly what [Autobase](#/learn/hp-autobase) provides: everyone
+writes their own input core, one apply function folds them into one view on
+every peer.
+
+## Choosing
+
+| need | reach for |
+|---|---|
+| parallel contributions, order rarely contested | fold + branching (A) |
+| human turn-taking, politeness enforceable socially | pen token (B) |
+| one canonical sequence, membership, kick/ban | Autobase (C) |
+
+Storyteller ships A + B: branching as the data truth, the pen as the social
+layer. p2pbuilders is pure A — votes commute, comments hang off ids, nothing
+needs a canonical order. Start at A; each step down the table buys
+consistency and costs simplicity. Take the trade only when the product
+forces you.
+
+---
+
+# SECTION: Lessons from our ecosystem
+
+Hard-won lessons from running p2pbuilders, peerit and HiveRelay in the wild. Scars included.
+
+---
+
+<!-- lesson: eco-authority · https://p2pbuilders.com/learn/eco-authority.html -->
+
+# The transport carries no authority
+
+The most important sentence in our codebase, learned the hard way while
+hardening peerit (the gossip engine the p2pbuilders web build reuses):
+
+> **A record is trusted because of its signature — never because of who
+> delivered it.**
+
+## The bug class
+
+Early gossip code made an innocent-looking assumption: records arriving on a
+connection from peer X are peer X's records. But gossip *forwards* — X relays
+records authored by Y and Z; that is the entire point. The moment any code
+path treated "received from X" as "authored by X", a malicious peer could
+inject records under other people's names by just… sending them.
+
+## The fix, as invariants
+
+Our merge now admits a record only if **all** of these hold, regardless of
+transport:
+
+1. **The signature verifies** over the canonical encoding of the record.
+2. **The signer is the claimed author** — the key that verifies must equal
+   the record's `author` field, or it is a well-signed lie.
+3. **The storage key matches the fields** — a record claiming to be
+   `vote!abc!carol` must actually be a vote by carol on abc; otherwise a
+   valid record can be replayed *at the wrong address* to overwrite state.
+
+Check 3 is the one people miss. Signature verification tells you the bytes
+are authentic; it does not tell you they belong where the sender put them.
+
+## Carry-outs
+
+- Do the checks **at ingest** — the boundary where bytes become state — not
+  in the UI, not "sometimes".
+- Canonical encoding matters: sign a deterministic serialization, or two
+  honest peers can disagree about validity.
+- Write the adversarial tests (forged sig, wrong author, mis-keyed replay).
+  Our engine test does exactly this, and it is the test we would rescue from
+  a fire first.
+
+Hypercore gives you 1 and 2 for free within a core. The moment you gossip
+records *outside* their author's core — we do, for speed — all three checks
+are yours again.
+
+---
+
+<!-- lesson: eco-outbox · https://p2pbuilders.com/learn/eco-outbox.html -->
+
+# Orphan-proof your outbox
+
+A war story from the p2pbuilders web build, fixed in a commit bluntly titled
+*"orphan-proof the outbox."*
+
+## The setup
+
+In the browser engine, each user maintains an **outbox** — the set of records
+they author, stored under a key derived from their identity, gossiped to
+peers, merged into everyone's view. Identity lives in browser storage.
+
+## The bug
+
+A user's identity key changes: storage cleared, dev profile switch, a
+restore that regenerated the key. The app happily starts a **new outbox**
+under the new key. The old outbox — with every post they ever made — is
+still on disk. But nothing references it anymore. It never gets gossiped
+again from this device. Posts silently fall off the network as other peers'
+copies age out.
+
+Nothing *errored*. That is what made it nasty: correctness by luck, data
+loss by default.
+
+## The fix
+
+On boot, **re-merge every past outbox, not just the current one**: scan
+storage for all outboxes ever written by this device and feed each through
+the normal (signature-checking) merge path. Old records are still perfectly
+valid — signed by the old key, verifiable by anyone. They flow back into the
+view and back into gossip. History survives the key change.
+
+Costs nothing measurable; removes a whole failure class.
+
+## The general lessons
+
+1. **Anything derived from identity is a liability under key rotation.**
+   Enumerate what happens to every keyed store when the key changes. "New
+   key, fresh everything" is almost never what the user meant.
+2. **Old signed data does not need the old secret.** Verification only needs
+   the *public* key that is embedded in the records. Never delete data just
+   because the signing key is gone.
+3. **Watch for silent-orphan shapes everywhere:** renamed storage
+   namespaces, changed derivation strings, migrated directories. If a write
+   path moved, ask what still points at the old one. The answer "nothing"
+   *is* the bug.
+
+---
+
+<!-- lesson: eco-blobs · https://p2pbuilders.com/learn/eco-blobs.html -->
+
+# Seed the blobs core, not just the metadata
+
+The operational trap of Hyperdrive hosting, which we hit publishing the
+p2pbuilders web build to HiveRelay.
+
+## The symptom
+
+Publish the site as a Hyperdrive. Ask relays to pin `drive.key`. Relays
+accept; status shows replicas across regions. Publisher goes offline.
+A visitor opens the site: listings resolve, **every file read hangs.**
+
+## The cause
+
+A [Hyperdrive is two Hypercores](#/learn/hp-hyperdrive): a metadata core
+(the file tree — this is what `drive.key` names) and a separate
+**content/blobs core** holding the actual bytes. Seeding by drive key pinned
+the metadata only. The relays could prove the *shape* of the site and serve
+none of it. And once the publisher left, the bytes existed nowhere always-on
+— the drive was unrecoverable until we came back online.
+
+## The fix
+
+Resolve the blobs core and seed it explicitly, every publish:
+
+```
+await drive.ready()
+const blobs = await drive.getBlobs()
+await relay.seed(drive.key)         // metadata core
+await relay.seed(blobs.core.key)    // content core — the actual site
+```
+
+Then verify like you mean it: our publisher waits for **proof a relay
+replicated the bytes** (`waitForDurable`) before exiting, instead of
+trusting an acceptance handshake.
+
+## The general lessons
+
+1. **Know your object graph.** Abstractions that feel like one thing
+   (a "drive") are often several replicable units. Pin the closure, not the
+   handle.
+2. **"Accepted" is not "replicated."** A pin request succeeding means a
+   relay *will try*. Durability claims need evidence: bytes confirmed on a
+   machine that is not yours.
+3. **Test the dead-publisher path.** Publish, kill the publisher, fetch cold
+   from another network. It is the only test that means anything for
+   availability — and it is exactly the check `web/check-durable.mjs` in
+   this repo automates.
+
+---
+
+<!-- lesson: eco-antispam · https://p2pbuilders.com/learn/eco-antispam.html -->
+
+# PoW + reputation: honest limits
+
+p2pbuilders is permissionless: keys are free, posting needs nobody's
+approval. Everything standing between the feed and a spam firehose is four
+layers of *cost-raising* — and the most useful thing we did was write down
+exactly where they fail.
+
+## What we run
+
+1. **Proof-of-work** on post/comment/board ops (~80ms / ~20ms / ~1.3s).
+   Un-worked ops are refused **at indexing time** — PoW is a policy each
+   peer enforces for itself, not a consensus rule
+   ([the foundations chapter](#/learn/handbook-trust) has the framing).
+2. **Per-key rate limits** at the indexer; violators' cores stay replicated
+   (cheap) but stop being indexed (the part that matters) for a cooldown.
+3. **Reputation-weighted votes** — weight grows with key age × received
+   upvotes, floor 0.02, cap 1.0. Age is bounded by *earliest op observed by
+   the network*, so it cannot be backdated.
+4. **Subscribable blocklists** — chosen curators, revocable by
+   unsubscribing.
+
+## The attack math we published
+
+From the spec's sybil analysis:
+
+| attacker | effective weight | cost |
+|---|---|---|
+| 100 fresh keys | 2.0 | ~8s of PoW |
+| 100 keys aged 30d, 1 mutual upvote | 14.0 | a month of patience |
+| 100 keys aged 30d, 10 mutual upvotes | 32.9 | month + coordination |
+
+Reference: one legit 90-day user ≈ 0.93. So a patient cross-voting ring
+equals ~35 real users. **v0.1 does not detect voting rings.** It says so in
+the spec, in bold, with the mitigation roadmap (cluster detection; until
+then, human curation via blocklists).
+
+## Why we design this way
+
+- **Layers, not walls.** Each layer is defeatable; stacked, they push spam
+  from "free" to "expensive and slow", which is where communities survive.
+- **Raise costs at the index, not the transport.** Replication stays cheap
+  and dumb; every peer applies *its own* admission policy. Censorship
+  resistance and spam resistance stop being in tension.
+- **Publish your attack math.** Writing the sybil table changed our design
+  (the 0.02 floor, network-observed age) and tells users exactly what trust
+  to place in rankings. Security honesty is a feature.
+
+---
+
+# SECTION: Build articles
+
+Write-ups of things we actually shipped: the terminal HN, the browser port, the relay fleet.
+
+---
+
+<!-- lesson: build-terminal · https://p2pbuilders.com/learn/build-terminal.html -->
+
+# Building the terminal HN
+
+p2pbuilders shipped as a **terminal app**: `pear run pear://…` drops you at
+a `›` prompt on a live P2P board. This article is how it is built and the
+decisions that got it out the door.
+
+## Architecture
+
+Two halves, cleanly split:
+
+- **Backend** (`src/backend/`): the Node class (Corestore + one Hypercore
+  per identity), the op schema, PoW minting/checking, the Hyperbee indexer
+  that folds every tracked core into hot/new/top views, reputation, rate
+  limits, and a Hyperswarm layer with a protomux announce channel. All
+  runtime-portable via one `_rt.js` shim ([Bare walkthrough](#/learn/hp-bare)).
+- **Terminal UI** (`src/terminal/main.js`): a single readline loop over a
+  tiny state machine — feed view, thread view, compose mode. Commands are
+  first-word dispatch (`submit`, `open 3`, `up 2`, `reply`, …). ANSI
+  colors and a screen-clear redraw; a debounce coalesces peer-driven
+  refreshes so gossip storms do not flicker the screen.
+
+Everything crosses one JSON-RPC dispatch layer — the same method surface the
+dev HTTP/WS server and the (parked) iOS pipe use. The UI cannot reach into
+internals; every transport gets the same API.
+
+## Decisions that shipped it
+
+- **Reddit-shaped → HN-shaped.** Boards + browsable lists were most of the UI
+  scope. One `front` feed cut it to a screen and a half of rendering; the
+  *data model* kept the `board` field, so the pivot cost nothing on-chain.
+- **TUI first.** The desktop GUI stack fought us (install-time timeouts), so
+  the terminal became the product. A readline loop has no build step, runs
+  identically under Bare and Node, and made the P2P parts — the actual hard
+  parts — the whole job.
+- **Compose mode over flags.** Multi-line posts arrive as a tiny modal state:
+  type lines, `.` submits, `:q` cancels. The whole editor is ~60 lines.
+- **Constants over admin systems.** Moderation is one `ADMIN_PUBKEY`
+  constant enforced *by the indexer* (admin tombstones are honored for any
+  target; everyone else, own ops only). Pinned posts are a hardcoded opId
+  list. Governance-by-recompile is honest for the current scale — the
+  enforcement point (indexer, not UI) is what makes it real.
+
+## What it proved
+
+41 tests cover every layer; the same backend booted under raw Bare (the iOS
+milestone) without changes. The bet that "the app is the log + the fold, the
+UI is whatever is cheapest today" — the whole premise of the
+[foundations track](#/learn/handbook-logs) — held.
+
+---
+
+<!-- lesson: build-web · https://p2pbuilders.com/learn/build-web.html -->
+
+# One engine, two apps: porting to the browser
+
+The browser build of p2pbuilders (`web/`) runs as a PearBrowser P2P site —
+same permissionless board, no terminal required. The interesting part of the
+port is what we *did not* write.
+
+## The reuse bet
+
+Our earlier app peerit (a P2P Reddit) had already been hardened into a
+generic gossip engine: Ed25519 identity, canonical signing, the
+signature-authority verification gauntlet
+([The transport carries no authority](#/learn/eco-authority)), per-user
+outboxes, and a last-write-wins gossip merge. That layer is app-agnostic —
+seven modules reused **verbatim**: `crypto.js`, `verify.js`, `sync.js`,
+`gossip.js`, `identity.js`, `markdown.js`, `util.js`.
+
+What p2pbuilders added on top: an HN record schema, proof-of-work, reputation
+weighting, HN ranking, the social graph, and the UI. The engine did not know
+what a "post" was before, and still does not.
+
+## The one change the engine needed
+
+PoW gating has to happen **at ingest** — un-worked records must never enter
+the view, no matter who relays them. But hashcash is an app policy; baking it
+into the engine would have ended the genericity. The resolution: a single
+`validate` **admit hook** — the engine calls it on every record before
+merge, the app supplies the PoW check. One seam, both properties kept. Where
+you put the seam is the difference between "shared library" and "fork".
+
+## Browser realities
+
+- **Same schema, different spelling:** records keyed like
+  `post!<board>!<cid>`, `vote!<target>!<voter>` — LWW where the terminal
+  app has an append-only log, converging on the same shapes
+  ([Data patterns](#/learn/pattern-data)).
+- **Crypto:** SubtleCrypto Ed25519 where available; a loudly-labeled insecure
+  dev fallback where not (the status chip tells you which world you are in).
+- **Transport:** on PearBrowser, `window.pear.sync` bridges to the real
+  swarm; on a plain dev server, localStorage cooperation simulates peers —
+  open two tabs, switch users, watch gossip.
+
+## Lesson
+
+Port the *engine boundary*, not the app. The terminal and web builds share
+almost no code — they share **invariants**: signed records, verify-on-ingest,
+fold-to-view. That is the part worth keeping identical, because it is the
+part that holds the security model.
+
+---
+
+<!-- lesson: build-relay · https://p2pbuilders.com/learn/build-relay.html -->
+
+# HiveRelay: dumb storage that keeps P2P online
+
+Every app in our ecosystem leans on
+[HiveRelay](https://github.com/bigdestiny2/P2P-Hiverelay): a fleet of
+always-on nodes (5+ relays, 3 continents) that pin Hypercores so data
+survives its author going offline —
+[the laptop-lid problem](#/learn/handbook-availability), operationalized.
+
+## The contract
+
+A relay does exactly one thing: **given a 32-byte key, replicate it and keep
+serving it.** No indexing, no validation beyond Hypercore's own signatures,
+no moderation, no accounts. This dumbness is a security decision:
+
+- Nothing to forge — logs are author-signed end-to-end; a relay is an
+  untrusted mirror by construction.
+- Nothing to subpoena into an authority — a relay cannot alter or
+  selectively rewrite content without breaking signatures.
+- Losing relays degrades availability, never integrity.
+
+## How apps use it
+
+The client library speaks to the fleet: `seed(pubkey)` requests pinning
+with a replica count; acceptances come back per relay with regions. The
+p2pbuilders TUI seeds **your core and every author you track** on boot and
+as discovery finds them — availability spreads with attention, invisibly.
+The `relays` command shows who is pinning you right now.
+
+For sites and app bundles, `publish()` wraps files into a Hyperdrive and
+seeds it — **both** cores, after
+[the blobs-core incident](#/learn/eco-blobs).
+
+## Operational lessons
+
+1. **Durability needs proof, not promises.** Acceptance means "will try".
+   The publisher waits for evidence a relay holds the bytes
+   (`waitForDurable`) before it exits, and re-checks on a loop when asked
+   to babysit. Separately, an archive tier re-heals replicas (≥7 across ≥4
+   regions) without the publisher.
+2. **Pins are leases, not tombs.** TTLs plus periodic re-announce from live
+   clients keep storage bounded and data fresh — set-and-forget pinning
+   grows forever.
+3. **Regions are part of the API.** Acceptances report region codes so a
+   client can *verify* geographic spread instead of hoping.
+
+## The line we hold
+
+Every feature request that would make relays smarter — search, feeds,
+moderation — gets the same answer: that is edge work. The fleet stays a
+cache tier apps *prefer* but never *require*. The moment peers cannot work
+without relays, we have rebuilt servers with extra steps.
+
+---
+
+# SECTION: Patterns for P2P apps
+
+A working catalog of shapes that keep showing up in peer-to-peer apps — steal these.
+
+---
+
+<!-- lesson: pattern-data · https://p2pbuilders.com/learn/pattern-data.html -->
+
+# Data patterns
+
+The state-shaped patterns we reach for in every app. Steal freely.
+
+## 1. Single-writer log, many-reader fold
+
+**The** foundational pattern
+([handbook chapter](#/learn/handbook-logs)). Each identity appends ops to
+its own signed log; every peer folds all followed logs through a pure
+reducer into a local view. No shared mutable state, no write conflicts, sync
+is length-compare. Use unless the product *demands* one canonical shared
+sequence (then: [Autobase](#/learn/hp-autobase)).
+
+## 2. Op schema with version byte
+
+Ops are `{ v, type, ts, payload }`. `v` first — logs are forever and you
+cannot migrate other people's cores
+([Storyteller 1](#/learn/storyteller-1)). Readers skip unknown types and
+versions without erroring: old clients are permanent.
+
+## 3. Reference, never contain
+
+Ops point at targets by id (`vote.target`, `comment.parent`); the fold
+stitches the graph. Deterministic ids — author key + sequence number, or a
+content hash — cost nothing and never collide.
+
+## 4. Last-write-wins records (with a real tiebreaker)
+
+For "current value" state (profiles, votes, follows): key the record
+(`vote!<target>!<voter>`), keep the highest `(ts, deterministic-tiebreak)`
+version. The tiebreak (compare hashes, compare authors — anything total)
+matters: equal timestamps happen constantly, and peers that break ties
+differently never converge.
+
+## 5. Tombstones — hide, don't delete
+
+Append-only means no erasure; "delete" is an op that conforming indexers
+honor by hiding the target ([the foundations track is honest about this](#/learn/handbook-logs)).
+Enforce authorship *in the fold* — a tombstone only applies if its author
+may delete the target (owner, or a role your app defines — p2pbuilders
+honors admin tombstones for any target, everyone else's for their own).
+Never rely on the writing client being polite.
+
+## 6. First-writer-wins (sticky) names
+
+Human-readable names in a system with no registry: first
+`board_create` / `story_create` observed for a name wins; later claims
+are ignored by the fold. An established name cannot be hijacked — even by a
+claim with a *backdated* timestamp, which is why "first observed", plus a
+deterministic tiebreak for genuine races, beats "earliest claimed". Squatting
+on brand-new names remains possible; say so, and let social pressure handle
+it.
+
+## 7. Keyspace design is query design
+
+Views live in ordered stores ([Hyperbee](#/learn/hp-hyperbee)); prefixes are
+tables, ranges are queries, inverted timestamps give newest-first. Design
+keys the way you would design indexes.
+
+---
+
+<!-- lesson: pattern-network · https://p2pbuilders.com/learn/pattern-network.html -->
+
+# Network patterns
+
+How P2P apps *connect* — the shapes we reuse everywhere.
+
+## 1. Derived, versioned topics
+
+Rendezvous points are hashes anyone can derive:
+`hash('myapp:board:v1:' + name)`
+([discovery chapter](#/learn/handbook-discovery)). Version them; a protocol
+break moves to `:v2:` instead of confusing old peers. Secret names give
+unlisted rooms for free ([Baby Rooms 1](#/learn/rooms-baby-1)).
+
+## 2. Gossip pointers, replicate content
+
+Never gossip content — gossip **keys** (author pubkeys, drive keys) and let
+verified replication move the bytes. Fake pointers are harmless (their
+content self-verifies or fails); fake content is impossible if it is never
+accepted outside signed logs. p2pbuilders' announce channel spreads author
+keys transitively: one connection bootstraps the whole board's roster.
+
+## 3. Validate on ingest — the admit hook
+
+Every byte crossing from network to state passes one gate that checks
+*everything*: signature over canonical encoding, signer == claimed author,
+storage-key/field consistency, app policy (PoW, size caps). The engine keeps
+one seam (`validate`) so policy stays app-side
+([how the web port kept its engine generic](#/learn/build-web)). Scattered
+"we check later" is how
+[transport-authority bugs](#/learn/eco-authority) happen.
+
+## 4. Enforce at the index, not the transport
+
+Replication stays promiscuous and cheap; *indexing* is where policy bites
+(refuse un-worked ops, rate-limit keys, apply blocklists). Peers disagreeing
+about policy still interoperate — each just shows a different view
+([why](#/learn/eco-antispam)).
+
+## 5. Relay pinning as a cache tier
+
+Always-on dumb storage keeps data alive through author downtime
+([HiveRelay](#/learn/build-relay)): seed yourself and everyone you track,
+verify durability with proof not acceptances, pin the *full object graph*
+([blobs incident](#/learn/eco-blobs)) — and keep the app fully functional
+with zero relays reachable.
+
+## 6. Design for churn
+
+Peers vanish mid-anything. Every handler must survive a socket dying between
+two lines; every sync must be resumable from any length. The test: kill
+either peer at a random moment, restart, converge. If that test scares you,
+the design is not done.
+
+---
+
+<!-- lesson: pattern-app · https://p2pbuilders.com/learn/pattern-app.html -->
+
+# App patterns
+
+The product-layer shapes — what makes a P2P app feel like an app instead of
+a protocol demo.
+
+## 1. Render from the local view, always
+
+The UI reads **only** the local fold ([Hyperbee views](#/learn/hp-hyperbee),
+merged gossip state) — never "the network". Boot offline shows everything
+you had; peers arriving just makes it fresher. This single rule delivers
+offline-first as a side effect and makes loading states nearly disappear:
+the data is already here.
+
+## 2. Optimistic writes with visible cost
+
+Your own ops apply locally the instant they are minted — your post is on
+screen before any peer has it. When writes carry proof-of-work, show the
+mint honestly (`minting pow… 80ms`, a live counter on the submit button):
+perceived honesty beats fake instancy, and it teaches users the spam gate
+exists.
+
+## 3. Soft refresh, never stomp input
+
+Gossip arrives mid-keystroke. Debounce re-renders, and **skip them while
+focus is in an input** — we learned to check `document.activeElement`
+before repainting, and the TUI equivalent (never redraw over compose mode).
+Losing a half-typed comment to a refresh is the fastest way to lose a user.
+
+## 4. Identity UX: keys under names
+
+Show nicknames, resolve them from signed profile records, fall back to
+`anon-<keyprefix>` — and keep the real key one tap away for out-of-band
+verification ([identity chapter](#/learn/handbook-identity)). Offer key
+backup/export early; there is no recovery flow to save anyone later. For
+dev builds: multi-identity switching (our dev user switcher) turns
+one browser into a test network.
+
+## 5. Honest status surfaces
+
+A P2P app should always answer: how many peers, how many records, which
+transport, is crypto real? Our web build's status chip
+(`gossip-bridge · 3p · 214 recs`) and the TUI header
+(`hot · 4 peers · tracking 12`) exist because trust in a serverless app
+comes from *legibility* — including showing when you are in an insecure dev
+fallback, loudly.
+
+## 6. Moderation as user power, not platform power
+
+Local blocks apply instantly to your own view; published blocklists let
+others *opt in* to your curation; unsubscribing un-moderates
+([trust chapter](#/learn/handbook-trust)). The app's job is making these
+levers visible — not deciding for anyone.
+
+## 7. Ship the smallest honest surface
+
+Our whole product history in one pattern: Reddit-shape → HN-shape cut the UI
+by half while the data model kept boards; the GUI stalled so the TUI
+shipped; pinned posts are a constant in a file
+([the build article](#/learn/build-terminal)). In P2P the hard risks live in
+the protocol layer — spend UI ambition *after* the network works.
