@@ -60,6 +60,48 @@ const fmtAgo = (ts) => {
   return `${Math.floor(s / 86400)}d`
 }
 
+// ---- Learn hub --------------------------------------------------------------
+// Educational content (P2P handbook, Holepunch walkthroughs, lesson tracks,
+// ecosystem lessons, build articles, app patterns) lives in ONE module shared
+// with the web build: web/js/learn-content.js. It's ESM, so we dynamic-import
+// it lazily on first `learn` command.
+
+let _learn = null
+async function loadLearn () {
+  if (!_learn) _learn = await import('../../web/js/learn-content.js')
+  return _learn
+}
+
+// Tiny markdown → ANSI formatter for lesson bodies. Handles the subset the
+// lessons use: headings, fenced code, inline code/bold, links, quotes, rules.
+function mdToAnsi (src) {
+  const stripInline = (s) => s
+    // internal lesson links become a `learn <id>` hint; external keep the url
+    .replace(/\[([^\]]+)\]\(#\/learn\/([a-z0-9-]+)\)/g, (_, t, id) => `${t} ${ANSI.dim}(learn ${id})${ANSI.reset}`)
+    .replace(/\[([^\]]+)\]\(#\/[^)]*\)/g, '$1')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) => `${t} ${ANSI.dim}(${u})${ANSI.reset}`)
+    .replace(/\*\*([^*]+)\*\*/g, `${ANSI.bold}$1${ANSI.reset}`)
+    .replace(/`([^`]+)`/g, `${ANSI.cyan}$1${ANSI.reset}`)
+  const out = []
+  const lines = String(src || '').replace(/\r\n?/g, '\n').split('\n')
+  let inCode = false
+  for (const line of lines) {
+    if (/^```/.test(line)) { inCode = !inCode; if (inCode) out.push(''); continue }
+    if (inCode) { out.push(`  ${ANSI.cyan}${line}${ANSI.reset}`); continue }
+    const h = /^(#{1,6})\s+(.*)$/.exec(line)
+    if (h) {
+      const t = stripInline(h[2])
+      if (h[1].length === 1) out.push(`${ANSI.orange}${ANSI.bold}${t}${ANSI.reset}\n${ANSI.gray}${'─'.repeat(Math.min(64, h[2].length))}${ANSI.reset}`)
+      else out.push(`${ANSI.bold}${t}${ANSI.reset}`)
+      continue
+    }
+    if (/^(-{3,}|\*{3,})\s*$/.test(line)) { out.push(`${ANSI.gray}${'─'.repeat(40)}${ANSI.reset}`); continue }
+    if (/^>\s?/.test(line)) { out.push(`${ANSI.dim}│ ${stripInline(line.replace(/^>\s?/, ''))}${ANSI.reset}`); continue }
+    out.push(stripInline(line))
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
 // ---- Relay seeding ---------------------------------------------------------
 // Asks the public HiveRelay network to pin our own user core and every
 // peer we track. Fire-and-forget; errors only go to the background log
@@ -211,7 +253,7 @@ async function main () {
       rest.forEach((p, i) => renderPostLine(p, pinned.length + i + 1, false))
     }
 
-    process.stdout.write(`\n${ANSI.dim}commands: submit · open <n> · up/down <n> · delete <n> · sort <hot|new|top> · r · help · quit${ANSI.reset}\n`)
+    process.stdout.write(`\n${ANSI.dim}commands: submit · open <n> · up/down <n> · delete <n> · sort <hot|new|top> · learn · r · help · quit${ANSI.reset}\n`)
   }
 
   function renderThread () {
@@ -424,6 +466,13 @@ async function main () {
     .                              submit (on its own line)
     :q                             cancel
 
+  ${ANSI.bold}learn (education hub)${ANSI.reset}
+    learn                          browse: P2P handbook, Holepunch walkthroughs,
+                                   Storyteller & Pear Baby Rooms lessons,
+                                   ecosystem lessons, build articles, patterns
+    learn <n>                      read lesson #n
+    learn <id>                     read a lesson by id (e.g. learn hp-hypercore)
+
   ${ANSI.bold}moderation${ANSI.reset}
     delete <n>                     delete a post (author or admin)
     delete                         delete current thread (in thread)
@@ -544,6 +593,43 @@ ${amAdmin ? '\n  ' + ANSI.orange + '(admin) ' + ANSI.reset + 'you can delete any
             printLine(`${ANSI.red}relay query failed: ${err.message}${ANSI.reset}`)
           }
           return
+        }
+        case 'learn': {
+          let lc
+          try { lc = await loadLearn() } catch (err) {
+            printLine(`${ANSI.red}learn content unavailable: ${err.message}${ANSI.reset}`)
+            break
+          }
+          const flat = lc.numberedLessons()
+          const arg = rest.trim()
+          if (!arg) {
+            // Index: sections with numbered lessons.
+            let n = 0
+            let outStr = `\n  ${ANSI.orange}${ANSI.bold}learn${ANSI.reset} ${ANSI.dim}— the p2pbuilders education hub. \`learn <n>\` or \`learn <id>\` opens a lesson.${ANSI.reset}\n`
+            for (const { section, lessons } of lc.lessonsBySection()) {
+              if (!lessons.length) continue
+              outStr += `\n  ${ANSI.bold}${section.title}${ANSI.reset}\n  ${ANSI.dim}${section.blurb}${ANSI.reset}\n`
+              for (const l of lessons) {
+                n++
+                outStr += `    ${ANSI.gray}${String(n).padStart(2)}.${ANSI.reset} ${l.title} ${ANSI.dim}· ${l.minutes} min · ${l.id}${ANSI.reset}\n`
+              }
+            }
+            printLine(outStr)
+            break
+          }
+          const idx = parseInt(arg, 10)
+          const lesson = (idx >= 1 && idx <= flat.length) ? flat[idx - 1] : lc.lessonById(arg)
+          if (!lesson) { printLine(`no lesson "${arg}". try: learn`); break }
+          const section = lc.SECTIONS.find(s => s.id === lesson.section)
+          const pos = flat.indexOf(lesson)
+          const next = pos >= 0 && pos < flat.length - 1 ? flat[pos + 1] : null
+          printLine(
+            `\n${ANSI.dim}learn › ${section ? section.title : lesson.section} · ${lesson.minutes} min read${ANSI.reset}\n\n` +
+            mdToAnsi(lesson.body) + '\n\n' +
+            `${ANSI.gray}${'─'.repeat(64)}${ANSI.reset}\n` +
+            (next ? `${ANSI.dim}next: ${ANSI.reset}${next.title} ${ANSI.dim}→ learn ${pos + 2}${ANSI.reset}` : `${ANSI.dim}that's the last one — \`learn\` for the index.${ANSI.reset}`)
+          )
+          break
         }
         case 'opid': {
           const n = parseInt(rest, 10)

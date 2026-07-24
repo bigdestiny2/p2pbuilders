@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Day 7: Profiling, Optimization &amp; Integration — p2pbuilders learn</title>
+<meta name="description" content="Flame graphs that prove your optimization worked — then build the whole stack end to end.">
+<link rel="canonical" href="https://p2pbuilders.org/learn/fm-day7.html">
+<meta property="og:title" content="Day 7: Profiling, Optimization &amp; Integration — p2pbuilders learn">
+<meta property="og:description" content="Flame graphs that prove your optimization worked — then build the whole stack end to end.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.org/learn/fm-day7.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.org/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Day 7: Profiling, Optimization &amp; Integration — p2pbuilders learn">
+<meta name="twitter:description" content="Flame graphs that prove your optimization worked — then build the whole stack end to end.">
+<meta name="twitter:image" content="https://p2pbuilders.org/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Day 7: Profiling, Optimization & Integration","description":"Flame graphs that prove your optimization worked — then build the whole stack end to end.","url":"https://p2pbuilders.org/learn/fm-day7.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.org"},"articleSection":"The P2P Engineer's Field Manual","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-24","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.org/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.org/learn/"},{"@type":"ListItem","position":3,"name":"Day 7: Profiling, Optimization & Integration","item":"https://p2pbuilders.org/learn/fm-day7.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › The P2P Engineer's Field Manual</nav>
+<article>
+<div class="meta">10 min read · part of <strong>The P2P Engineer's Field Manual</strong> · also readable inside the app (type <code>learn fm-day7</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Day 07: Profiling, Optimization &amp; Integration</h1>
+<p><em>Flame graphs that prove your optimization worked — then build the whole stack end to end.</em></p>
+<blockquote><p>⏱ ~2 hrs · theory 40 / capstone 80</p></blockquote>
+<p>Optimization without measurement is superstition. Today you learn to <em>find</em> the bottleneck before touching<br>code, then you assemble everything from Days 1–6 into a single working P2P node: DHT-style discovery, a Noise-style<br>handshake, length-prefixed binary framing, and verified message exchange. This is also your interview rehearsal —<br>the capstone <em>is</em> the system-design answer.</p>
+<h2>7.1 Measure first: the profiling toolkit</h2>
+<table><thead><tr><th>Tool</th><th>What it shows</th><th>When to reach for it</th></tr></thead><tbody><tr><td><code>node --prof</code></td><td>V8 sampling profile → process with <code>--prof-process</code></td><td>First look at where CPU time goes, zero deps</td></tr><tr><td><code>node --cpu-prof</code></td><td>Writes a <code>.cpuprofile</code> for Chrome DevTools</td><td>Visual flame graph in a familiar UI</td></tr><tr><td><code>clinic doctor</code></td><td>Diagnoses the <em>kind</em> of problem (CPU, I/O, GC, event-loop)</td><td>&quot;It&#39;s slow and I don&#39;t know why&quot;</td></tr><tr><td><code>clinic flame</code> / <code>0x</code></td><td>Flame graph of stack frames by time</td><td>Pinpoint the hot function</td></tr><tr><td><code>clinic bubbleprof</code></td><td>Async operation flow &amp; latency</td><td>Async/await and I/O latency chains</td></tr><tr><td><code>perf_hooks</code></td><td>Precise in-process timing &amp; event-loop delay</td><td>Targeted micro-measurements &amp; CI gates</td></tr></tbody></table>
+<h3>Reading a flame graph</h3>
+<p>The x-axis is <strong>not time</strong> — it&#39;s the share of samples a function (and its callees) appeared in. Width<br>= cost. Height = call-stack depth. You hunt for <strong>wide plateaus</strong>: a single wide frame is a function<br>burning CPU directly; a wide frame with narrow children is the leaf where the time actually goes. Optimizing a narrow<br>frame, however slow it feels, moves nothing. <em>Wide first, always.</em></p>
+<blockquote><p>The discipline<br>Measure → form a hypothesis about the widest frame → change one thing → measure again. If the flame graph didn&#39;t<br>get narrower where you expected, revert. Most &quot;optimizations&quot; made without this loop are noise or regressions.</p></blockquote>
+<h2>7.2 The optimization order of operations</h2>
+<ol><li><strong>Algorithm first.</strong> An <code>O(n²)</code> → <code>O(n)</code> fix (the Day 6 concat trap) beats any micro-tuning.</li><li><strong>Allocation second.</strong> Cut buffer churn in hot paths; reuse and slice instead of copy.</li><li><strong>Don&#39;t block the loop third.</strong> Move heavy CPU off-thread; keep per-event work bounded.</li><li><strong>Micro-optimize last,</strong> only with a flame graph pointing at the exact frame.</li></ol>
+<h2>7.3 Lab — profile a deliberately slow path</h2>
+<hr>
+<h3>Goal</h3>
+<p>Generate a CPU profile, read it, fix the hot spot, and confirm the win — the full measure-fix-measure loop.</p>
+<pre><code>// slow.js — a &quot;message processor&quot; with a hidden hot spot
+const { performance } = require(&#39;perf_hooks&#39;);
+
+function processMessages(n) {
+  let log = &#39;&#39;;
+  for (let i = 0; i &lt; n; i++) {
+    log += JSON.stringify({ id: i, ok: true }) + &#39;\n&#39;; // string += in a loop = O(n^2)-ish
+  }
+  return log.length;
+}
+
+const t = performance.now();
+console.log(&#39;len:&#39;, processMessages(200000));
+console.log(&#39;took:&#39;, (performance.now() - t).toFixed(0), &#39;ms&#39;);</code></pre>
+<pre><code># profile it
+node --cpu-prof --cpu-prof-name=slow.cpuprofile slow.js
+# open slow.cpuprofile in Chrome DevTools (Performance tab) -&gt; see the wide frame
+
+# or the zero-dependency route:
+node --prof slow.js
+node --prof-process isolate-*.log &gt; profile.txt
+# inspect the &quot;Summary&quot; and &quot;Bottom up (heavy) profile&quot; sections</code></pre>
+<p>The profile fingers string concatenation / stringify as the wide frame. The fix is the same shape as Day 6:<br>collect parts, join once.</p>
+<pre><code>// fast.js — same output, collect-then-join
+function processMessages(n) {
+  const parts = [];
+  for (let i = 0; i &lt; n; i++) parts.push(&#39;{&quot;id&quot;:&#39; + i + &#39;,&quot;ok&quot;:true}&#39;);
+  return parts.join(&#39;\n&#39;).length;
+}</code></pre>
+<p>Re-profile and confirm the plateau shrank. <em>That&#39;s</em> the loop — never trust a fix you didn&#39;t re-measure.</p>
+<h2>7.4 Capstone — a complete P2P node</h2>
+<p>Now we wire the week together. This single program runs a tiny in-memory &quot;DHT&quot; to discover a peer&#39;s address, runs<br>an X25519 handshake to derive a shared key, then exchanges <strong>length-prefixed, AEAD-encrypted</strong> binary<br>messages — the whole Holepunch-shaped pipeline in one file, using only Node built-ins plus <code>sodium-native</code>.</p>
+<hr>
+<h3>What it integrates</h3>
+<ul><li><strong>Day 1/3:</strong> a registry/rendezvous resolves a topic → peer address (DHT discovery, condensed).</li><li><strong>Day 5:</strong> X25519 key agreement → a shared AEAD key (the handshake).</li><li><strong>Day 4:</strong> length-prefixed varint framing over a UDP/stream boundary.</li><li><strong>Day 5:</strong> ChaCha20-Poly1305 AEAD on every message, with tamper rejection.</li><li><strong>Day 6:</strong> bounded per-event work, slice-not-copy framing, no concat-in-loop.</li></ul>
+<h3>The capstone (run with <code>node capstone.js</code>)</h3>
+<pre><code>// capstone.js — discovery + handshake + framed encrypted messaging, in-process
+const sodium = require(&#39;sodium-native&#39;);
+const EventEmitter = require(&#39;events&#39;);
+
+// ---------- Day 4: varint + length-prefix framing ----------
+function encodeVarint(v) {
+  const b = [];
+  while (v &gt; 0x7f) { b.push((v &amp; 0x7f) | 0x80); v = Math.floor(v / 128); }
+  b.push(v &amp; 0x7f); return Buffer.from(b);
+}
+function decodeVarint(buf, off = 0) {
+  let r = 0, s = 0, p = off;
+  while (true) {
+    const x = buf[p++]; if (x === undefined) throw new Error(&#39;incomplete&#39;);
+    r += (x &amp; 0x7f) * Math.pow(2, s); if ((x &amp; 0x80) === 0) break; s += 7;
+  }
+  return { value: r, bytesRead: p - off };
+}
+class Framer extends EventEmitter {
+  constructor() { super(); this.buf = Buffer.alloc(0); }
+  push(chunk) {
+    this.buf = Buffer.concat([this.buf, chunk]);
+    while (this.buf.length) {
+      let h; try { h = decodeVarint(this.buf); } catch { return; }
+      const total = h.bytesRead + h.value;
+      if (this.buf.length &lt; total) return;
+      this.emit(&#39;message&#39;, Buffer.from(this.buf.subarray(h.bytesRead, total)));
+      this.buf = this.buf.subarray(total);
+    }
+  }
+}
+const frame = (p) =&gt; Buffer.concat([encodeVarint(p.length), p]);
+
+// ---------- Day 5: handshake + AEAD ----------
+function kxKeypair() {
+  const pk = Buffer.alloc(sodium.crypto_kx_PUBLICKEYBYTES);
+  const sk = Buffer.alloc(sodium.crypto_kx_SECRETKEYBYTES);
+  sodium.crypto_kx_keypair(pk, sk); return { pk, sk };
+}
+const A_BYTES = sodium.crypto_aead_chacha20poly1305_ietf_ABYTES;
+const N_BYTES = sodium.crypto_aead_chacha20poly1305_ietf_NPUBBYTES;
+function seal(key, counter, msg) {
+  const nonce = Buffer.alloc(N_BYTES); nonce.writeUInt32LE(counter, 0); // per-message nonce
+  const ct = Buffer.alloc(msg.length + A_BYTES);
+  sodium.crypto_aead_chacha20poly1305_ietf_encrypt(ct, msg, null, null, nonce, key);
+  return ct;
+}
+function open(key, counter, ct) {
+  const nonce = Buffer.alloc(N_BYTES); nonce.writeUInt32LE(counter, 0);
+  const out = Buffer.alloc(ct.length - A_BYTES);
+  sodium.crypto_aead_chacha20poly1305_ietf_decrypt(out, null, ct, null, nonce, key);
+  return out;
+}
+
+// ---------- Day 1/3: a trivial discovery registry ----------
+const registry = new Map(); // topic -&gt; { inbox: Framer, key, counter }
+
+function makePeer(name, topic) {
+  const kp = kxKeypair();
+  const inbox = new Framer();
+  const peer = { name, topic, kp, inbox, key: null, rxCounter: 0, txCounter: 0, partner: null };
+  registry.set(name, peer);
+  return peer;
+}
+
+// &quot;send&quot; = hand framed bytes to the partner&#39;s inbox (stands in for the wire)
+function send(from, payload) {
+  const ct = seal(from.key, from.txCounter, payload);
+  from.txCounter++;
+  from.partner.inbox.push(frame(ct)); // length-prefixed encrypted frame
+}
+
+// ---------- wire it together ----------
+const alice = makePeer(&#39;alice&#39;, &#39;chat-42&#39;);
+const bob = makePeer(&#39;bob&#39;, &#39;chat-42&#39;);
+alice.partner = bob; bob.partner = alice;
+
+// discovery + handshake: derive a shared AEAD key from kx
+function handshake(client, server) {
+  const cRx = Buffer.alloc(32), cTx = Buffer.alloc(32);
+  const sRx = Buffer.alloc(32), sTx = Buffer.alloc(32);
+  sodium.crypto_kx_client_session_keys(cRx, cTx, client.kp.pk, client.kp.sk, server.kp.pk);
+  sodium.crypto_kx_server_session_keys(sRx, sTx, server.kp.pk, server.kp.sk, client.kp.pk);
+  // use one direction&#39;s key for both here (demo); real protocols key each direction
+  client.key = cTx; server.key = sRx; // cTx === sRx
+  return cTx.equals(sRx);
+}
+console.log(&#39;handshake ok:&#39;, handshake(alice, bob));
+
+// bob decrypts and verifies each framed message he receives
+bob.inbox.on(&#39;message&#39;, (ct) =&gt; {
+  try {
+    const msg = open(bob.key, bob.rxCounter, ct);
+    bob.rxCounter++;
+    console.log(`bob received: &quot;${msg.toString()}&quot;`);
+  } catch {
+    console.log(&#39;bob: message failed AEAD verification — dropped&#39;);
+  }
+});
+
+// alice sends three encrypted, framed messages
+send(alice, Buffer.from(&#39;hello bob&#39;));
+send(alice, Buffer.from(&#39;this channel is encrypted&#39;));
+send(alice, Buffer.from(&#39;and every frame is verified&#39;));
+
+// tamper demo: flip a byte in a sealed frame and confirm it&#39;s rejected
+const good = seal(alice.key, 99, Buffer.from(&#39;evil&#39;));
+good[2] ^= 0xff;
+bob.rxCounter = 99;
+bob.inbox.push(frame(good)); // -&gt; &quot;failed AEAD verification — dropped&quot;</code></pre>
+<h3>Expected output</h3>
+<pre><code>node capstone.js
+// handshake ok: true
+// bob received: &quot;hello bob&quot;
+// bob received: &quot;this channel is encrypted&quot;
+// bob received: &quot;and every frame is verified&quot;
+// bob: message failed AEAD verification — dropped</code></pre>
+<h3>From this skeleton to the real Holepunch stack</h3>
+<p>Each hand-rolled piece maps to a production module: the registry → <code>hyperdht</code>; the kx handshake →<br>the Noise/UDX transport inside <code>hyperswarm</code>; the framer → <code>compact-encoding</code> + the stream<br>protocol; the append-and-verify pattern → <code>hypercore</code>. Rebuild the capstone using <code>hyperswarm</code><br>for real: join a topic, and on <code>&#39;connection&#39;</code> you get an already-encrypted, already-framed stream — every<br>layer you just built by hand, productionized.</p>
+<h3>Experiments</h3>
+<ul><li>Replace the in-process registry with the real <code>dgram</code> rendezvous from Day 3 so the two peers run as separate processes.</li><li>Swap the hand framer for <code>compact-encoding</code> structs (Day 4) and confirm identical behavior.</li><li>Profile the capstone under 100k messages with <code>--cpu-prof</code>; confirm no accidental concat-in-loop and that AEAD dominates CPU (as it should).</li></ul>
+<h2>7.5 Final interview drill</h2>
+<ul><li>I can read a flame graph and explain why width matters more than height.</li><li>I follow the measure → hypothesize → change one thing → re-measure loop.</li><li>I know the optimization order: algorithm → allocation → don&#39;t block → micro.</li><li>My capstone discovers a peer, handshakes, and exchanges verified encrypted frames.</li><li>I can deliver the end-to-end &quot;two peers connecting securely&quot; answer cold.</li></ul>
+<p>You&#39;ve now built, by hand, a small version of every layer in a<br>modern P2P stack — and you can explain each one and prove it runs. Walk into the interview and rebuild the capstone<br>on a whiteboard from the five-layer summary above. That&#39;s the whole game.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/fm-day6.html">« Day 6: High-Performance JS Networking</a>
+<a rel="next" href="/learn/handbook-intro.html">Why peer-to-peer »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

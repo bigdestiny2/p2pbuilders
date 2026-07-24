@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>The transport carries no authority — p2pbuilders learn</title>
+<meta name="description" content="The audit finding that reshaped our engine: trust signatures, never the pipe they arrived through.">
+<link rel="canonical" href="https://p2pbuilders.org/learn/eco-authority.html">
+<meta property="og:title" content="The transport carries no authority — p2pbuilders learn">
+<meta property="og:description" content="The audit finding that reshaped our engine: trust signatures, never the pipe they arrived through.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.org/learn/eco-authority.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.org/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The transport carries no authority — p2pbuilders learn">
+<meta name="twitter:description" content="The audit finding that reshaped our engine: trust signatures, never the pipe they arrived through.">
+<meta name="twitter:image" content="https://p2pbuilders.org/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"The transport carries no authority","description":"The audit finding that reshaped our engine: trust signatures, never the pipe they arrived through.","url":"https://p2pbuilders.org/learn/eco-authority.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.org"},"articleSection":"Lessons from our ecosystem","timeRequired":"PT6M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-24","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.org/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.org/learn/"},{"@type":"ListItem","position":3,"name":"The transport carries no authority","item":"https://p2pbuilders.org/learn/eco-authority.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Lessons from our ecosystem</nav>
+<article>
+<div class="meta">6 min read · part of <strong>Lessons from our ecosystem</strong> · also readable inside the app (type <code>learn eco-authority</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>The transport carries no authority</h1>
+<p>The most important sentence in our codebase, learned the hard way while<br>hardening peerit (the gossip engine the p2pbuilders web build reuses):</p>
+<blockquote><p><strong>A record is trusted because of its signature — never because of who<br>delivered it.</strong></p></blockquote>
+<h2>The bug class</h2>
+<p>Early gossip code made an innocent-looking assumption: records arriving on a<br>connection from peer X are peer X&#39;s records. But gossip <em>forwards</em> — X relays<br>records authored by Y and Z; that is the entire point. The moment any code<br>path treated &quot;received from X&quot; as &quot;authored by X&quot;, a malicious peer could<br>inject records under other people&#39;s names by just… sending them.</p>
+<h2>The fix, as invariants</h2>
+<p>Our merge now admits a record only if <strong>all</strong> of these hold, regardless of<br>transport:</p>
+<ol><li><strong>The signature verifies</strong> over the canonical encoding of the record.</li><li><strong>The signer is the claimed author</strong> — the key that verifies must equal</li></ol>
+<p>   the record&#39;s <code>author</code> field, or it is a well-signed lie.</p>
+<ol><li><strong>The storage key matches the fields</strong> — a record claiming to be</li></ol>
+<p>   <code>vote!abc!carol</code> must actually be a vote by carol on abc; otherwise a<br>   valid record can be replayed <em>at the wrong address</em> to overwrite state.</p>
+<p>Check 3 is the one people miss. Signature verification tells you the bytes<br>are authentic; it does not tell you they belong where the sender put them.</p>
+<h2>Carry-outs</h2>
+<ul><li>Do the checks <strong>at ingest</strong> — the boundary where bytes become state — not</li></ul>
+<p>  in the UI, not &quot;sometimes&quot;.</p>
+<ul><li>Canonical encoding matters: sign a deterministic serialization, or two</li></ul>
+<p>  honest peers can disagree about validity.</p>
+<ul><li>Write the adversarial tests (forged sig, wrong author, mis-keyed replay).</li></ul>
+<p>  Our engine test does exactly this, and it is the test we would rescue from<br>  a fire first.</p>
+<p>Hypercore gives you 1 and 2 for free within a core. The moment you gossip<br>records <em>outside</em> their author&#39;s core — we do, for speed — all three checks<br>are yours again.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/storyteller-2.html">« Storyteller 2: passing the pen</a>
+<a rel="next" href="/learn/eco-outbox.html">Orphan-proof your outbox »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

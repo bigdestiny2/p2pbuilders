@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Pear Baby Rooms 1: your first room — p2pbuilders learn</title>
+<meta name="description" content="From zero to two machines chatting P2P: one topic, one swarm, ~40 lines, no server.">
+<link rel="canonical" href="https://p2pbuilders.org/learn/rooms-baby-1.html">
+<meta property="og:title" content="Pear Baby Rooms 1: your first room — p2pbuilders learn">
+<meta property="og:description" content="From zero to two machines chatting P2P: one topic, one swarm, ~40 lines, no server.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.org/learn/rooms-baby-1.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.org/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pear Baby Rooms 1: your first room — p2pbuilders learn">
+<meta name="twitter:description" content="From zero to two machines chatting P2P: one topic, one swarm, ~40 lines, no server.">
+<meta name="twitter:image" content="https://p2pbuilders.org/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Pear Baby Rooms 1: your first room","description":"From zero to two machines chatting P2P: one topic, one swarm, ~40 lines, no server.","url":"https://p2pbuilders.org/learn/rooms-baby-1.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.org"},"articleSection":"Storyteller & Pear Baby Rooms","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-24","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.org/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.org/learn/"},{"@type":"ListItem","position":3,"name":"Pear Baby Rooms 1: your first room","item":"https://p2pbuilders.org/learn/rooms-baby-1.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Storyteller &amp; Pear Baby Rooms</nav>
+<article>
+<div class="meta">10 min read · part of <strong>Storyteller &amp; Pear Baby Rooms</strong> · also readable inside the app (type <code>learn rooms-baby-1</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Pear Baby Rooms 1: your first room</h1>
+<p>Baby Rooms is our from-absolute-zero track: each lesson is one sitting, ends<br>with something alive on your screen, and introduces exactly one idea. Lesson<br>one: <strong>a room is just a topic two peers both joined.</strong></p>
+<h2>Build it</h2>
+<pre><code>mkdir baby-room &amp;&amp; cd baby-room
+npm init -y
+npm i hyperswarm hypercore-crypto bare bare-process bare-readline</code></pre>
+<p><code>room.js</code>:</p>
+<pre><code>const Hyperswarm = require(&#39;hyperswarm&#39;)
+const crypto = require(&#39;hypercore-crypto&#39;)
+
+const name = process.argv[2] || &#39;baby-room-hello&#39;
+const topic = crypto.hash(Buffer.from(&#39;baby-rooms:v1:&#39; + name))
+
+const swarm = new Hyperswarm()
+const peers = new Set()
+
+swarm.join(topic, { server: true, client: true })
+swarm.on(&#39;connection&#39;, (socket) =&gt; {
+  peers.add(socket)
+  console.log(&#39;* peer joined (&#39; + peers.size + &#39; online)&#39;)
+  socket.on(&#39;data&#39;, (d) =&gt; console.log(&#39;them:&#39;, d.toString().trim()))
+  socket.on(&#39;error&#39;, () =&gt; {})
+  socket.on(&#39;close&#39;, () =&gt; { peers.delete(socket); console.log(&#39;* peer left&#39;) })
+})
+
+process.stdin.on(&#39;data&#39;, (line) =&gt; {
+  for (const p of peers) p.write(line)
+})
+
+console.log(&#39;room &quot;&#39; + name + &#39;&quot; — waiting for peers…&#39;)</code></pre>
+<p>Run <code>node room.js secret-club</code> in two terminals (better: two machines, two<br>networks). When <code>* peer joined</code> prints, type. You are chatting through an<br>encrypted, holepunched, serverless connection.</p>
+<h2>What you just learned</h2>
+<ul><li>The room <strong>name never left your machines</strong> — both sides hashed it into a</li></ul>
+<p>  topic and met at the hash. Unguessable name ⇒ unguessable room.</p>
+<ul><li>There is <strong>no room object anywhere</strong>. &quot;The room&quot; is only the set of peers</li></ul>
+<p>  currently joined to the topic. Close both terminals and it does not exist.</p>
+<ul><li>Messages here are ephemeral and unauthenticated — anyone in the room could</li></ul>
+<p>  claim any name. Fixing that is<br>  <a href="/learn/rooms-baby-2.html">lesson 2</a>; making the room <em>remember</em> is<br>  <a href="/learn/rooms-baby-3.html">lesson 3</a>.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/hp-autobase.html">« Autobase: many writers, one view</a>
+<a rel="next" href="/learn/rooms-baby-2.html">Pear Baby Rooms 2: who said that? »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

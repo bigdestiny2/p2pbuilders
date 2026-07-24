@@ -1,0 +1,8 @@
+# p2pbuilders — everything here is public and free to index.
+# AI crawlers are welcome: the learn corpus is Apache-2.0, attribution
+# appreciated (link https://p2pbuilders.org/learn/). Machine-readable map: /llms.txt
+
+User-agent: *
+Allow: /
+
+Sitemap: https://p2pbuilders.org/sitemap.xml

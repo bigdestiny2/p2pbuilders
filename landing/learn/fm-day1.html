@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Day 1: Distributed Hash Tables &amp; Kademlia — p2pbuilders learn</title>
+<meta name="description" content="The XOR metric that quietly organizes every modern swarm.">
+<link rel="canonical" href="https://p2pbuilders.org/learn/fm-day1.html">
+<meta property="og:title" content="Day 1: Distributed Hash Tables &amp; Kademlia — p2pbuilders learn">
+<meta property="og:description" content="The XOR metric that quietly organizes every modern swarm.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.org/learn/fm-day1.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.org/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Day 1: Distributed Hash Tables &amp; Kademlia — p2pbuilders learn">
+<meta name="twitter:description" content="The XOR metric that quietly organizes every modern swarm.">
+<meta name="twitter:image" content="https://p2pbuilders.org/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Day 1: Distributed Hash Tables & Kademlia","description":"The XOR metric that quietly organizes every modern swarm.","url":"https://p2pbuilders.org/learn/fm-day1.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.org"},"articleSection":"The P2P Engineer's Field Manual","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-24","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.org/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.org/learn/"},{"@type":"ListItem","position":3,"name":"Day 1: Distributed Hash Tables & Kademlia","item":"https://p2pbuilders.org/learn/fm-day1.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › The P2P Engineer's Field Manual</nav>
+<article>
+<div class="meta">10 min read · part of <strong>The P2P Engineer's Field Manual</strong> · also readable inside the app (type <code>learn fm-day1</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Day 01: Distributed Hash Tables &amp; Kademlia</h1>
+<p><em>The XOR metric that quietly organizes every modern swarm.</em></p>
+<blockquote><p>⏱ ~90 min · theory 45 / lab 45</p></blockquote>
+<p>Almost everything else in this manual sits on top of one idea: a <strong>distributed hash table</strong>.<br>A DHT lets thousands of machines, none of which trust or even know each other, collectively behave like<br>one giant key–value store — with no server, no central index, and no single point of failure. When you<br>ask the network &quot;who has the data for key <code>K</code>?&quot;, the lookup converges on the answer in roughly<br><code>log₂(N)</code> hops even across millions of nodes. Kademlia is the design that made this practical,<br>and it is the ancestor of the BitTorrent DHT, IPFS, Ethereum&#39;s discovery layer, and Holepunch&#39;s<br><code>hyperdht</code>.</p>
+<h2>1.1 The problem a DHT solves</h2>
+<p>Imagine you want to store a billion key–value pairs across a fluctuating set of peers. A naive approach<br>puts everything on one coordinator — but that coordinator is a bottleneck and a kill switch. The DHT insight<br>is to give every <em>node</em> and every <em>key</em> an ID drawn from the same address space (say, 256-bit<br>numbers), then define a rule: <strong>a key lives on the node(s) whose ID is &quot;closest&quot; to the key&#39;s ID.</strong><br>Now any node can independently figure out where a key <em>should</em> be, without asking a server.</p>
+<p>Two questions fall out of that: (1) what does &quot;closest&quot; mean, and (2) how does a node that knows only a<br>handful of peers <em>route</em> a query to the right corner of the network? Kademlia answers both elegantly.</p>
+<h2>1.2 XOR as a distance metric</h2>
+<p>Kademlia measures distance between two IDs as their bitwise <strong>XOR</strong>, interpreted as an integer:<br><code>distance(a,b) = a XOR b</code>. This looks strange the first time you see it, but it has exactly the<br>properties a metric needs:</p>
+<ul><li><strong>Identity:</strong> <code>d(a,a) = 0</code> — a node is distance zero from itself.</li><li><strong>Symmetry:</strong> <code>d(a,b) = d(b,a)</code> — if I am close to you, you are equally close to me. (This is the property the older Chord ring lacked, and why Kademlia routing tables self-reinforce.)</li><li><strong>Triangle inequality:</strong> <code>d(a,c) ≤ d(a,b) ⊕ d(b,c)</code> holds.</li><li><strong>Unidirectionality:</strong> for any point <code>a</code> and distance <code>Δ</code>, there is exactly <em>one</em> point <code>b</code> with <code>d(a,b)=Δ</code>. This means all lookups for the same key converge along the same path, which is what makes caching and routing-table convergence work.</li></ul>
+<p>The magic is that XOR distance is <em>prefix-sensitive</em>: two IDs that share a long leading bit-prefix are<br>numerically close. So &quot;getting closer to the target&quot; is the same as &quot;matching more of its high bits,&quot; and that<br>turns routing into a binary-search-like descent through the ID space.</p>
+<blockquote><p>Intuition<br>Think of IDs as leaves of a binary tree. Each step of a lookup lets you correct one more bit, halving the<br>remaining search space. Halving repeatedly across <code>N</code> nodes is why lookups take <code>O(log N)</code> hops.</p></blockquote>
+<h2>1.3 k-buckets: the routing table</h2>
+<p>A node can&#39;t remember every peer, so Kademlia keeps a structured, partial view. For each bit-distance band<br><code>i</code> (peers whose ID differs from mine starting at bit <code>i</code>), the node keeps a<br><strong>k-bucket</strong>: a list of up to <code>k</code> contacts (commonly <code>k = 20</code>). The result is a<br>routing table that is <em>dense for nearby IDs and sparse for far ones</em> — you know your immediate neighborhood<br>in fine detail and the rest of the universe only coarsely. That asymmetry is exactly what you need: to route, you<br>only ever need a peer that is closer than you to the target, and the table guarantees you have one.</p>
+<p>k-buckets also encode a liveness policy. When a bucket is full and a new node appears, Kademlia pings the<br><em>least-recently-seen</em> contact; if it still answers, the newcomer is discarded. This deliberately favors<br>long-lived nodes, because empirically a node that has been up for an hour is likely to stay up another hour. It<br>also makes the table naturally resistant to flooding attacks.</p>
+<h2>1.4 The four RPCs</h2>
+<table><thead><tr><th>RPC</th><th>Purpose</th></tr></thead><tbody><tr><td><code>PING</code></td><td>Liveness check; the heartbeat behind bucket maintenance.</td></tr><tr><td><code>STORE</code></td><td>Tell a node to hold a <code>(key, value)</code> pair.</td></tr><tr><td><code>FIND_NODE</code></td><td>&quot;Give me the <code>k</code> closest contacts you know to this ID.&quot; The workhorse of routing.</td></tr><tr><td><code>FIND_VALUE</code></td><td>Like <code>FIND_NODE</code>, but if the node holds the value it returns it directly.</td></tr></tbody></table>
+<h2>1.5 Iterative lookup and the α parameter</h2>
+<p>To find a target, a node starts with the closest contacts it knows and sends them <code>FIND_NODE</code> in<br>parallel. Each response returns contacts that are (hopefully) closer; the node keeps the best results it has seen,<br>picks the closest un-queried ones, and repeats. Lookups are <strong>iterative</strong> — the searcher drives every<br>step and stays in control — rather than recursive, which improves resilience to misbehaving nodes.</p>
+<p>The concurrency factor <code>α</code> (typically 3) controls how many queries are in flight at once. It<br>trades latency against redundant traffic: higher <code>α</code> tolerates slow or dead peers without stalling<br>the descent, at the cost of extra packets.</p>
+<blockquote><p>Holepunch note<br><code>hyperdht</code> is Kademlia-derived but tuned for a different job: instead of storing arbitrary blobs, its<br>primary role is <em>peer discovery and connection bootstrapping</em>. It stores small mutable/immutable records<br>(signed announcements of &quot;I am reachable at this address&quot;) and integrates UDP hole-punching directly into the<br>lookup. Same routing skeleton, different payload. Keep this contrast ready — it is a likely interview question.</p></blockquote>
+<h2>1.6 Lab — build a minimal Kademlia routing core</h2>
+<hr>
+<h3>Goal</h3>
+<p>Implement XOR distance, a k-bucket routing table, and a simulated iterative lookup over an in-memory network<br>of nodes. You will <em>see</em> the <code>log N</code> convergence with your own eyes by printing each hop.</p>
+<h3>Setup</h3>
+<pre><code># no dependencies — pure Node
+mkdir kad-lab &amp;&amp; cd kad-lab
+node --version   # v18+ recommended</code></pre>
+<h3>Step 1 — IDs and XOR distance</h3>
+<p>We use 16-bit IDs (a <code>Buffer</code> of 2 bytes) so the numbers stay small and printable. Real systems use<br>160 or 256 bits, but the math is identical.</p>
+<pre><code>// kad.js
+const ID_BITS = 16;
+const ID_BYTES = ID_BITS / 8;
+
+function randomId() {
+  const b = Buffer.allocUnsafe(ID_BYTES);
+  for (let i = 0; i &lt; ID_BYTES; i++) b[i] = (Math.random() * 256) | 0;
+  return b;
+}
+
+// XOR distance as a BigInt so it is directly comparable
+function distance(a, b) {
+  let d = 0n;
+  for (let i = 0; i &lt; ID_BYTES; i++) d = (d &lt;&lt; 8n) | BigInt(a[i] ^ b[i]);
+  return d;
+}
+
+// index of the most-significant differing bit -&gt; which bucket a peer belongs in
+function bucketIndex(self, other) {
+  for (let i = 0; i &lt; ID_BYTES; i++) {
+    const x = self[i] ^ other[i];
+    if (x !== 0) return i * 8 + Math.clz32(x) - 24; // clz32 on a byte
+  }
+  return ID_BITS; // identical
+}</code></pre>
+<h3>Step 2 — the k-bucket routing table</h3>
+<pre><code>const K = 4; // small k so buckets fill up visibly
+
+class RoutingTable {
+  constructor(selfId) {
+    this.self = selfId;
+    this.buckets = Array.from({ length: ID_BITS + 1 }, () =&gt; []);
+  }
+  add(node) {
+    if (node.id.equals(this.self)) return;
+    const b = bucketIndex(this.self, node.id);
+    const bucket = this.buckets[b];
+    if (bucket.find(n =&gt; n.id.equals(node.id))) return;
+    if (bucket.length &lt; K) bucket.push(node);
+    // (real impl: ping least-recently-seen before evicting)
+  }
+  // return the n contacts closest to a target id
+  closest(target, n = K) {
+    return this.buckets.flat()
+      .sort((x, y) =&gt; (distance(x.id, target) &lt; distance(y.id, target) ? -1 : 1))
+      .slice(0, n);
+  }
+}</code></pre>
+<h3>Step 3 — a simulated network + iterative lookup</h3>
+<pre><code>const ALPHA = 3;
+
+class Node {
+  constructor(id) { this.id = id; this.table = new RoutingTable(id); }
+  // the FIND_NODE RPC: just answer with my closest known contacts
+  findNode(target) { return this.table.closest(target); }
+}
+
+function buildNetwork(count) {
+  const nodes = Array.from({ length: count }, () =&gt; new Node(randomId()));
+  // seed each node&#39;s table with random acquaintances (bootstrap gossip)
+  for (const n of nodes)
+    for (let i = 0; i &lt; 20; i++)
+      n.table.add(nodes[(Math.random() * count) | 0]);
+  return nodes;
+}
+
+// iterative lookup driven by one starting node
+function lookup(start, target) {
+  let shortlist = start.table.closest(target, ALPHA);
+  const queried = new Set();
+  let hops = 0, best = distance(start.id, target);
+
+  while (true) {
+    const batch = shortlist.filter(n =&gt; !queried.has(n.id.toString(&#39;hex&#39;))).slice(0, ALPHA);
+    if (batch.length === 0) break;
+    hops++;
+    let found = [];
+    for (const peer of batch) {
+      queried.add(peer.id.toString(&#39;hex&#39;));
+      found = found.concat(peer.findNode(target));
+    }
+    // merge, dedupe, keep K closest overall
+    const seen = new Map();
+    for (const n of shortlist.concat(found)) seen.set(n.id.toString(&#39;hex&#39;), n);
+    shortlist = [...seen.values()]
+      .sort((x, y) =&gt; (distance(x.id, target) &lt; distance(y.id, target) ? -1 : 1))
+      .slice(0, K);
+    const closest = distance(shortlist[0].id, target);
+    if (closest &gt;= best) break; // no improvement -&gt; converged
+    best = closest;
+  }
+  return { hops, winner: shortlist[0], best };
+}
+
+// --- run it ---
+const N = 5000;
+const net = buildNetwork(N);
+const target = randomId();
+const start = net[0];
+const r = lookup(start, target);
+console.log(`network size  : ${N}`);
+console.log(`target        : ${target.toString(&#39;hex&#39;)}`);
+console.log(`hops to find  : ${r.hops}`);
+console.log(`log2(N)       : ${Math.log2(N).toFixed(1)}`);
+console.log(`closest found : ${r.winner.id.toString(&#39;hex&#39;)}`);</code></pre>
+<h3>Run &amp; expected output</h3>
+<pre><code>node kad.js
+// network size  : 5000
+// target        : 9c41
+// hops to find  : 4         &lt;- compare to log2(5000) ≈ 12.3
+// closest found : 9c2f      &lt;- shares the 9c.. prefix</code></pre>
+<h3>Experiments to try</h3>
+<ul><li>Sweep <code>N</code> from 100 to 100000 and plot <code>hops</code> vs <code>N</code>. The curve is logarithmic — this is the headline property of every DHT.</li><li>Set <code>ALPHA = 1</code> and re-run. Lookups still work but take more rounds and are fragile if a queried node is &quot;dead.&quot; Then try <code>ALPHA = 8</code> and watch redundant queries climb.</li><li>Reduce the bootstrap acquaintance count from 20 to 3. Lookups degrade or fail — the routing table is too sparse. This is why real DHTs run periodic bucket-refresh lookups.</li></ul>
+<h2>1.7 Self-check &amp; interview drill</h2>
+<ul><li>I can define XOR distance and name its four metric properties.</li><li>I can explain what a k-bucket stores and why eviction favors old nodes.</li><li>I can walk through an iterative lookup and the role of <code>α</code>.</li><li>My lab prints hop counts that grow logarithmically with network size.</li></ul>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/fm-syllabus.html">« Start here: the 7-day syllabus</a>
+<a rel="next" href="/learn/fm-day2.html">Day 2: BitTorrent &amp; Hypercore »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

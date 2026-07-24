@@ -1,0 +1,9 @@
+{
+  "name": "p2pbuilders-web",
+  "private": true,
+  "type": "module",
+  "description": "Browser build of p2pbuilders (PearBrowser P2P site). This file marks web/js as ES modules so Node can run test/*.mjs and the terminal app can import learn-content.js; the root package stays commonjs.",
+  "scripts": {
+    "test": "node test/engine.mjs && node test/learn.mjs"
+  }
+}

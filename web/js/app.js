@@ -13,6 +13,7 @@ import { renderMarkdown } from './markdown.js'
 import { sortPosts, sortComments, POST_SORTS, COMMENT_SORTS } from './ranking.js'
 import { buildCommentTree, sortCommentTree, countDescendants, DEFAULT_BOARD, normalizeBoard } from './model.js'
 import { escapeHtml as esc, timeAgo, fmtCount, parseRoute, buildRoute, shortKey, colorFor, debounce } from './util.js'
+import { SECTIONS, LESSONS, lessonById, lessonsBySection, numberedLessons } from './learn-content.js'
 
 let sync, identity, data, prefs
 let renderToken = 0
@@ -69,7 +70,7 @@ function renderChrome () {
       <a class="brand" href="#/"><span class="brand-mark">Y</span><span class="brand-name">p2pbuilders</span></a>
       <nav class="topnav">
         <a href="#/">new</a><a href="#/?sort=hot">hot</a><a href="#/?sort=top">top</a>
-        <a href="#/boards">boards</a><a href="#/submit">submit</a>
+        <a href="#/boards">boards</a><a href="#/learn">learn</a><a href="#/submit">submit</a>
       </nav>
       <form class="search" data-form="search"><input name="q" placeholder="search" autocomplete="off"></form>
       <div class="usermenu" id="usermenu"></div>
@@ -91,6 +92,7 @@ async function renderUserMenu () {
       <a role="menuitem" href="#/u/${esc(me.pubkey)}">profile</a>
       <a role="menuitem" href="#/submit">submit</a>
       <a role="menuitem" href="#/boards">boards</a>
+      <a role="menuitem" href="#/learn">learn</a>
       <a role="menuitem" href="#/blocklists">blocklists</a>
       <a role="menuitem" href="#/settings">settings</a>
       ${identity.isDev ? '<div class="dd-sep"></div>' + devSwitcher() : ''}
@@ -124,6 +126,7 @@ function route () {
       if (path[2] === 'item' && path[3]) return viewItem({ board: path[1], cid: path[3], query, guard, token })
       return viewFeed({ board: path[1], query, guard, token })
     case 'boards': return viewBoards({ guard, token })
+    case 'learn': return path[1] ? viewLearnDoc({ id: path[1], guard }) : viewLearnIndex({ guard })
     case 'submit': return viewSubmit({ query, guard, token })
     case 'u': return viewProfile({ pub: path[1], guard, token })
     case 'settings': return viewSettings({ guard, token })
@@ -347,6 +350,43 @@ async function viewBlocklists ({ guard, token }) {
     <ul class="board-list">${lists.length ? lists.map(l => `<li><a href="#/u/${esc(l.author)}">${esc(nameOf(l.author))}</a> <span class="dim">${(l.list || []).length} keys · v${l.version || 1}</span> <button class="btn ghost sm" data-act="sub-blocklist" data-pub="${esc(l.author)}">${prefs.isSubscribedBlocklist(l.author) ? 'subscribed' : 'subscribe'}</button></li>`).join('') : '<li class="dim">No published blocklists yet.</li>'}</ul>`)
 }
 
+// ---- learn ------------------------------------------------------------------
+function viewLearnIndex ({ guard }) {
+  const groups = lessonsBySection().filter(g => g.lessons.length)
+  guard(`<div class="feed-head"><h1>learn</h1></div>
+    <p class="learn-intro">The educational home of p2pbuilders: our P2P handbook, hands-on Holepunch
+    walkthroughs, the Storyteller and Pear Baby Rooms lesson tracks, hard-won lessons from running this
+    ecosystem, write-ups of builds we've shipped, and patterns for your own apps. No server behind any
+    of it — these pages replicate peer-to-peer with the rest of the site.</p>
+    ${groups.map(({ section, lessons }) => `
+    <section class="learn-section">
+      <h2>${esc(section.title)}</h2>
+      <p class="learn-blurb dim">${esc(section.blurb)}${section.href ? ` <a class="learn-alt" href="${esc(section.href)}" target="_blank" rel="noopener">${esc(section.hrefLabel || 'open')}</a>` : ''}</p>
+      <ol class="learn-list">${lessons.map(l => `
+        <li><a href="#/learn/${esc(l.id)}">${esc(l.title)}</a> <span class="dim">· ${l.minutes} min</span>
+          <div class="learn-summary dim">${esc(l.summary)}</div></li>`).join('')}
+      </ol>
+    </section>`).join('')}`)
+}
+
+function viewLearnDoc ({ id, guard }) {
+  const lesson = lessonById(id)
+  if (!lesson) return guard(notFound('No such lesson. See the learn index.'))
+  const section = SECTIONS.find(s => s.id === lesson.section)
+  const flat = numberedLessons()
+  const i = flat.findIndex(l => l.id === lesson.id)
+  const prev = i > 0 ? flat[i - 1] : null
+  const next = i >= 0 && i < flat.length - 1 ? flat[i + 1] : null
+  guard(`<article class="learn-doc">
+    <div class="learn-crumbs dim"><a href="#/learn">learn</a> › ${esc(section ? section.title : lesson.section)} <span class="sep">·</span> ${lesson.minutes} min read</div>
+    <div class="md">${renderMarkdown(lesson.body)}</div>
+    <div class="learn-pager">
+      ${prev ? `<a class="pager-prev" href="#/learn/${esc(prev.id)}">« ${esc(prev.title)}</a>` : '<span></span>'}
+      ${next ? `<a class="pager-next" href="#/learn/${esc(next.id)}">${esc(next.title)} »</a>` : ''}
+    </div>
+  </article>`)
+}
+
 // ---- search -----------------------------------------------------------------
 async function viewSearch ({ query, guard, token }) {
   const q = (query.q || '').trim().toLowerCase()
@@ -356,7 +396,12 @@ async function viewSearch ({ query, guard, token }) {
   posts = await data.withTallies(posts); await primeNames(posts.map(p => p.author))
   const counts = await commentCounts(posts)
   if (token !== renderToken) return
-  guard(`<div class="feed-head"><h1>results for "${esc(q)}"</h1></div><ol class="feed">${posts.length ? sortPosts(posts, 'top').map((p, i) => postRow(p, i + 1, counts)).join('') : '<p class="dim">No matches.</p>'}</ol>`)
+  const lessons = LESSONS.filter(l => (l.title + ' ' + l.summary + ' ' + l.body).toLowerCase().includes(q))
+  const lessonRows = lessons.length
+    ? `<h2 class="section-title">from learn</h2><ol class="learn-list search-lessons">${lessons.map(l =>
+        `<li><a href="#/learn/${esc(l.id)}">${esc(l.title)}</a> <span class="dim">· ${l.minutes} min — ${esc(l.summary)}</span></li>`).join('')}</ol>`
+    : ''
+  guard(`<div class="feed-head"><h1>results for "${esc(q)}"</h1></div>${lessonRows}<ol class="feed">${posts.length ? sortPosts(posts, 'top').map((p, i) => postRow(p, i + 1, counts)).join('') : '<p class="dim">No post matches.</p>'}</ol>`)
 }
 
 // ---- helpers ----------------------------------------------------------------

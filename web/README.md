@@ -67,11 +67,23 @@ In PearBrowser (real bridge): `node publish.mjs --local` prints a `hyper://` key
 hosts the drive; open it in PearBrowser. The same code runs on `window.pear.sync/
 identity/swarm` (the `BridgeGossipSync` path) — the status chip shows `gossip-bridge`.
 
+## Learn hub
+
+The **learn** tab (`#/learn`) is the education home of p2pbuilders: the P2P
+Engineer's Field Manual (our 7-day crash course — designed edition at
+`fieldmanual.html`), the P2P foundations track, Holepunch walkthroughs, the
+Storyteller & Pear Baby Rooms lesson tracks, ecosystem war stories, build
+articles, and app patterns — 37 lessons. Content lives in
+`js/learn-content.js` (+ the generated `js/fieldmanual-content.js`), which the
+**terminal app shares** (its `learn` command imports the same module), so edit
+in one place. Lessons also surface in search results.
+
 ## Test
 
 ```bash
 node test/engine.mjs   # 24 checks: PoW gate, reputation, HN ranking, gossip data flow,
                        # sticky boards, follow/blocklist, profiles
+node test/learn.mjs    # learn-hub content: schema, links, markdown rendering
 ```
 
 ## Publish (outward-facing — run deliberately)

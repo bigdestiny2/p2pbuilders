@@ -154,6 +154,33 @@ label input:focus,label textarea:focus,label select:focus{border-color:var(--ora
 .atag{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--orange);border:1px solid var(--border-2);border-radius:4px;padding:1px 5px;margin-right:5px}
 .activity a{font-weight:600} .activity a:hover{color:var(--orange)}
 
+/* learn */
+.learn-intro{color:var(--muted);font-size:13.5px;max-width:640px;margin:0 0 18px}
+.learn-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px}
+.learn-section h2{margin:0 0 4px;font-size:15px;font-family:var(--mono)}
+.learn-blurb{font-size:12.5px;margin:0 0 8px}
+.learn-list{list-style:none;margin:0;padding:0;counter-reset:lesson}
+.learn-list li{counter-increment:lesson;padding:7px 0 7px 30px;border-top:1px solid var(--border);position:relative;font-size:14px}
+.learn-list li::before{content:counter(lesson) ".";position:absolute;left:4px;color:var(--faint);font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums}
+.learn-list li>a{font-weight:600}
+.learn-list li>a:hover{color:var(--orange)}
+.learn-summary{font-size:12.5px;margin-top:1px}
+.search-lessons{margin-bottom:14px}
+.learn-doc{max-width:720px}
+.learn-crumbs{font-size:12.5px;margin-bottom:12px}
+.learn-crumbs a{color:var(--muted);font-weight:600}
+.learn-crumbs a:hover{color:var(--orange)}
+.learn-doc .md{font-size:14.5px;line-height:1.65}
+.learn-doc .md h1{font-size:21px;margin:0 0 12px;line-height:1.25;font-family:var(--mono)}
+.learn-doc .md h2{font-size:16px;margin:20px 0 8px}
+.learn-doc .md h3{font-size:14.5px;margin:16px 0 6px}
+.learn-doc .md p{margin:0 0 11px}
+.learn-doc .md table{border-collapse:collapse;margin:10px 0;font-size:13px}
+.learn-doc .md th,.learn-doc .md td{border:1px solid var(--border-2);padding:5px 10px;text-align:left}
+.learn-pager{display:flex;justify-content:space-between;gap:12px;margin:26px 0 10px;padding-top:14px;border-top:1px solid var(--border);font-size:13px}
+.learn-pager a{color:var(--muted);font-weight:600;max-width:48%}
+.learn-pager a:hover{color:var(--orange)}
+
 /* empty / skeleton */
 .empty{text-align:center;background:var(--surface);border:1px dashed var(--border-2);border-radius:var(--radius);padding:40px 20px}
 .empty p{color:var(--muted)}

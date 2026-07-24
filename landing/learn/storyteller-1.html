@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Storyteller 1: a story is a log — p2pbuilders learn</title>
+<meta name="description" content="Designing an op schema — the storytelling app as a worked example of thinking in append-only.">
+<link rel="canonical" href="https://p2pbuilders.org/learn/storyteller-1.html">
+<meta property="og:title" content="Storyteller 1: a story is a log — p2pbuilders learn">
+<meta property="og:description" content="Designing an op schema — the storytelling app as a worked example of thinking in append-only.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.org/learn/storyteller-1.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.org/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Storyteller 1: a story is a log — p2pbuilders learn">
+<meta name="twitter:description" content="Designing an op schema — the storytelling app as a worked example of thinking in append-only.">
+<meta name="twitter:image" content="https://p2pbuilders.org/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Storyteller 1: a story is a log","description":"Designing an op schema — the storytelling app as a worked example of thinking in append-only.","url":"https://p2pbuilders.org/learn/storyteller-1.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.org"},"articleSection":"Storyteller & Pear Baby Rooms","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-24","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.org/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.org/learn/"},{"@type":"ListItem","position":3,"name":"Storyteller 1: a story is a log","item":"https://p2pbuilders.org/learn/storyteller-1.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Storyteller &amp; Pear Baby Rooms</nav>
+<article>
+<div class="meta">10 min read · part of <strong>Storyteller &amp; Pear Baby Rooms</strong> · also readable inside the app (type <code>learn storyteller-1</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Storyteller 1: a story is a log</h1>
+<p>Storyteller is our app-design track. The app: people write stories together,<br>one passage at a time, each author owning their words. Baby Rooms taught the<br>plumbing; Storyteller teaches the <strong>thinking</strong> — because in P2P, your real<br>design surface is not the database schema or the API. It is the <strong>op schema</strong>:<br>the vocabulary of things a user can <em>say</em> into their log.</p>
+<h2>Design the ops before anything else</h2>
+<p>A first pass for Storyteller:</p>
+<pre><code>story_create : { storyId, title, opening }
+passage      : { storyId, parent, text }     // parent = passage id it continues
+react        : { target, kind }              // ❤ a passage
+retract      : { target }                    // tombstone my own op
+profile      : { nick, bio }</code></pre>
+<p>Run every candidate op through four questions:</p>
+<ol><li><strong>Is it self-contained?</strong> An op is verified alone, possibly years later,</li></ol>
+<p>   out of order. <code>passage</code> carries its <code>storyId</code> even though &quot;context&quot;<br>   feels redundant — there is no session to remember it for you.</p>
+<ol><li><strong>Does it reference or contain?</strong> Reference by id (<code>parent</code>, <code>target</code>),</li></ol>
+<p>   never embed copies. The fold stitches the graph.</p>
+<ol><li><strong>Can the fold converge?</strong> Two writers continue the same passage — is that</li></ol>
+<p>   a conflict? No: store <em>both</em>, and the story <strong>branches</strong>. What looked like<br>   a merge problem becomes the product&#39;s best feature. This mindset shift —<br>   conflicts into structure — is the single most useful P2P design habit.</p>
+<ol><li><strong>What happens on abuse?</strong> Anyone can append <code>story_create</code> with your</li></ol>
+<p>   story&#39;s id. First-writer-wins on the id, everyone else&#39;s ignored<br>   (<a href="/learn/pattern-data.html">sticky names</a>) — decided in the schema, not<br>   patched later.</p>
+<h2>Version from day one</h2>
+<pre><code>{ v: 1, type: &#39;passage&#39;, ts: 1712345678901, payload: { … } }</code></pre>
+<p>Logs are forever — you cannot migrate other people&#39;s cores. The <code>v</code> byte is<br>how readers three schema versions from now still parse your 2024 ops. Ignore<br>unknown types and unknown versions politely; peers running old clients are a<br>permanent fact of life.</p>
+<p>Next: several people, one story, and who holds the pen —<br><a href="/learn/storyteller-2.html">Storyteller 2</a>.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/rooms-baby-3.html">« Pear Baby Rooms 3: a room that remembers</a>
+<a rel="next" href="/learn/storyteller-2.html">Storyteller 2: passing the pen »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

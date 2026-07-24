@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Day 2: BitTorrent &amp; Hypercore — p2pbuilders learn</title>
+<meta name="description" content="Two ways to move data with no server: a static swarm and a signed, append-only log.">
+<link rel="canonical" href="https://p2pbuilders.org/learn/fm-day2.html">
+<meta property="og:title" content="Day 2: BitTorrent &amp; Hypercore — p2pbuilders learn">
+<meta property="og:description" content="Two ways to move data with no server: a static swarm and a signed, append-only log.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.org/learn/fm-day2.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.org/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Day 2: BitTorrent &amp; Hypercore — p2pbuilders learn">
+<meta name="twitter:description" content="Two ways to move data with no server: a static swarm and a signed, append-only log.">
+<meta name="twitter:image" content="https://p2pbuilders.org/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Day 2: BitTorrent & Hypercore","description":"Two ways to move data with no server: a static swarm and a signed, append-only log.","url":"https://p2pbuilders.org/learn/fm-day2.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.org"},"articleSection":"The P2P Engineer's Field Manual","timeRequired":"PT10M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-24","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.org/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.org/learn/"},{"@type":"ListItem","position":3,"name":"Day 2: BitTorrent & Hypercore","item":"https://p2pbuilders.org/learn/fm-day2.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › The P2P Engineer's Field Manual</nav>
+<article>
+<div class="meta">10 min read · part of <strong>The P2P Engineer's Field Manual</strong> · also readable inside the app (type <code>learn fm-day2</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Day 02: BitTorrent &amp; Hypercore</h1>
+<p><em>Two ways to move data with no server: a static swarm and a signed, append-only log.</em></p>
+<blockquote><p>⏱ ~90 min · theory 50 / lab 40</p></blockquote>
+<p>Yesterday&#39;s DHT tells peers <em>how to find each other</em>. Today is about what they do once connected:<br><em>move data efficiently and verifiably</em>. BitTorrent solved this for static files in 2001 with a beautifully<br>pragmatic incentive design. Hypercore — the core of the Holepunch stack — solved a harder version: a single-writer,<br>append-only log that any peer can replicate and cryptographically verify block-by-block. Understanding the contrast<br>between them is the fastest way to sound fluent about P2P data transfer.</p>
+<h2>2.1 BitTorrent: the swarm model</h2>
+<p>A torrent splits a file into fixed-size <strong>pieces</strong> (typically 256 KB–1 MB), and the<br><code>.torrent</code> metadata (or magnet link) carries a SHA-1/SHA-256 hash of every piece. That hash list is the<br>trust anchor: a peer can verify any piece it receives against the expected hash and reject corrupt or malicious data<br>without trusting the sender. Peers swap pieces until everyone has the whole file.</p>
+<h3>Piece selection: rarest-first</h3>
+<p>If every peer downloaded pieces in order, the first pieces would be everywhere and the last pieces would be<br>scarce — and if the only seed left before sharing a rare piece, the file would be unrecoverable. BitTorrent instead<br>prefers the <strong>rarest piece first</strong>: each peer tracks how many of its neighbors have each piece and<br>fetches the least-replicated ones. This spreads scarcity risk and keeps the swarm healthy as seeds come and go. A<br>small exception (&quot;random first piece&quot;) bootstraps a brand-new peer quickly so it has something to trade.</p>
+<h3>Choking: tit-for-tat incentives</h3>
+<p>BitTorrent&#39;s real innovation is social, not technical. Each peer <strong>chokes</strong> (refuses to upload to)<br>most of its neighbors and <strong>unchokes</strong> only a few — preferentially those who upload to <em>it</em> the<br>fastest. This tit-for-tat reciprocation rewards contributors and starves freeloaders. Periodically a peer does an<br><strong>optimistic unchoke</strong> of a random neighbor, to discover better partners and to give newcomers (who have<br>nothing to offer yet) a foot in the door.</p>
+<table><thead><tr><th>Mechanism</th><th>What it prevents</th></tr></thead><tbody><tr><td>Per-piece hashes</td><td>Corrupt / malicious data acceptance</td></tr><tr><td>Rarest-first</td><td>Piece scarcity &amp; unrecoverable swarms</td></tr><tr><td>Tit-for-tat choking</td><td>Freeloading (download without upload)</td></tr><tr><td>Optimistic unchoke</td><td>Newcomer starvation &amp; local optima</td></tr><tr><td>BitTorrent DHT (BEP 5) + PEX</td><td>Dependence on a central tracker</td></tr></tbody></table>
+<p>The <strong>bitfield</strong> message — sent on connection — is how a peer advertises which pieces it already has,<br>as a compact bit array. <code>have</code> messages then incrementally announce new pieces. The <strong>BitTorrent<br>DHT</strong> (a Kademlia network keyed by infohash) and <strong>PEX</strong> (peer exchange) let swarms operate with<br>no tracker at all — this is exactly the DHT material from Day 1 applied in production.</p>
+<h2>2.2 Hypercore: the append-only log</h2>
+<p>BitTorrent distributes a <em>fixed, known-in-advance</em> file. But many applications need a <em>growing</em><br>data feed — a chat history, a database changelog, a file that gets revised. Hypercore is the answer: a<br><strong>secure, append-only log</strong> owned by a single keypair. Only the holder of the secret key can append;<br>anyone with the public key (which <em>is</em> the feed&#39;s address) can read and verify.</p>
+<h3>The Merkle tree over blocks</h3>
+<p>Each appended block is hashed (BLAKE2b), and those hashes form a <strong>Merkle tree</strong>. The signed root<br>commits to the entire log. The payoff: a peer can request block <code>i</code> alone and receive it plus a small set<br>of sibling hashes (a Merkle proof) that verify it against the signed root — *without downloading the rest of the<br>log*. This is what makes random access and partial replication trustworthy. It is the same idea as BitTorrent&#39;s<br>piece hashes, generalized into a tree so proofs stay <code>O(log n)</code> and the structure can grow.</p>
+<blockquote><p>Why a tree, not a flat list<br>A flat hash list (BitTorrent) is fine when the piece count is fixed and known. A Merkle tree lets the dataset<br><em>grow without bound</em> while keeping verification proofs logarithmic and letting the writer publish a single<br>signed root that commits to all of history.</p></blockquote>
+<h3>Single-writer, many-reader</h3>
+<p>The keypair is the heart of the model. The <strong>public key is the discovery key / address</strong>; the secret<br>key authorizes appends. Replication is a duplex stream: two peers exchange what blocks they have and want, request<br>ranges, and verify every block against the Merkle root as it arrives. Higher layers in the Holepunch stack<br>(<code>hyperbee</code> for key–value/B-tree, <code>hyperdrive</code> for filesystems, <code>autobase</code> for<br>multi-writer) are all built on this one primitive.</p>
+<table><thead><tr><th></th><th>BitTorrent</th><th>Hypercore</th></tr></thead><tbody><tr><td>Data shape</td><td>Static file, fixed pieces</td><td>Append-only growing log</td></tr><tr><td>Trust anchor</td><td>Flat list of piece hashes</td><td>Signed Merkle root + keypair</td></tr><tr><td>Writers</td><td>Whoever seeds (content-addressed)</td><td>Exactly one (key-addressed)</td></tr><tr><td>Mutability</td><td>Immutable</td><td>Append (history preserved)</td></tr><tr><td>Verification</td><td>Per-piece hash check</td><td>Per-block Merkle proof</td></tr></tbody></table>
+<h2>2.3 Lab — append-only log with Merkle verification</h2>
+<hr>
+<h3>Goal</h3>
+<p>Build a tiny append-only log that produces a Merkle root and lets a &quot;reader&quot; verify a single block with a proof —<br>the conceptual core of Hypercore — using only Node&#39;s built-in <code>crypto</code>. Then run real Hypercore replication<br>between two instances.</p>
+<h3>Part A — Merkle log from scratch (no dependencies)</h3>
+<pre><code>// merkle-log.js
+const crypto = require(&#39;crypto&#39;);
+const H = (buf) =&gt; crypto.createHash(&#39;sha256&#39;).update(buf).digest();
+
+class MerkleLog {
+  constructor() { this.blocks = []; this.leaves = []; }
+
+  append(data) {
+    const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    this.blocks.push(buf);
+    this.leaves.push(H(buf));
+    return this.blocks.length - 1; // index
+  }
+
+  // build the tree bottom-up; return the layered hash arrays
+  tree() {
+    let layer = this.leaves.slice();
+    const layers = [layer];
+    while (layer.length &gt; 1) {
+      const next = [];
+      for (let i = 0; i &lt; layer.length; i += 2) {
+        const left = layer[i];
+        const right = layer[i + 1] || left; // duplicate last if odd
+        next.push(H(Buffer.concat([left, right])));
+      }
+      layers.push(next);
+      layer = next;
+    }
+    return layers;
+  }
+
+  root() { const l = this.tree(); return l[l.length - 1][0]; }
+
+  // proof = sibling hash at each level needed to recompute the root
+  proof(index) {
+    const layers = this.tree();
+    const path = [];
+    let idx = index;
+    for (let lvl = 0; lvl &lt; layers.length - 1; lvl++) {
+      const isRight = idx % 2 === 1;
+      const sibling = isRight ? idx - 1 : idx + 1;
+      const layer = layers[lvl];
+      path.push({ hash: (layer[sibling] || layer[idx]), isRight });
+      idx = idx &gt;&gt; 1;
+    }
+    return path;
+  }
+}
+
+// a reader who has ONLY the trusted root verifies one block
+function verify(block, index, proof, trustedRoot) {
+  let h = H(block);
+  for (const step of proof) {
+    h = step.isRight
+      ? H(Buffer.concat([step.hash, h]))   // our node was on the right
+      : H(Buffer.concat([h, step.hash]));
+  }
+  return h.equals(trustedRoot);
+}
+
+// --- demo ---
+const log = new MerkleLog();
+[&#39;genesis&#39;, &#39;block-1&#39;, &#39;block-2&#39;, &#39;block-3&#39;, &#39;block-4&#39;].forEach(d =&gt; log.append(d));
+const root = log.root();
+
+const i = 3;
+const ok = verify(log.blocks[i], i, log.proof(i), root);
+console.log(&#39;root      :&#39;, root.toString(&#39;hex&#39;).slice(0, 16), &#39;…&#39;);
+console.log(&#39;verify #3 :&#39;, ok);
+
+// tamper test: flip the block, proof must fail
+const bad = Buffer.from(&#39;block-3-EVIL&#39;);
+console.log(&#39;tampered  :&#39;, verify(bad, i, log.proof(i), root));</code></pre>
+<h3>Expected output</h3>
+<pre><code>node merkle-log.js
+// root      : 2f6a... …
+// verify #3 : true
+// tampered  : false   &lt;- the Merkle proof rejects altered data</code></pre>
+<h3>Part B — the real thing: Hypercore replication</h3>
+<p>Now see it in production form. Modern Hypercore (v11+) is managed through a <code>Corestore</code> backed by a<br>storage path; we replicate a log from a writer store to a key-only reader store over piped streams (the same API<br>works over a real socket).</p>
+<pre><code>npm init -y
+npm install hypercore corestore</code></pre>
+<pre><code>// hc.js
+const Corestore = require(&#39;corestore&#39;);
+const os = require(&#39;os&#39;), path = require(&#39;path&#39;), fs = require(&#39;fs&#39;);
+
+async function main() {
+  // two independent stores on disk (Hypercore 11+ requires a storage dir)
+  const dirA = fs.mkdtempSync(path.join(os.tmpdir(), &#39;hc-a-&#39;));
+  const dirB = fs.mkdtempSync(path.join(os.tmpdir(), &#39;hc-b-&#39;));
+
+  // writer core
+  const store = new Corestore(dirA);
+  const writer = store.get({ name: &#39;log&#39; });
+  await writer.ready();
+  await writer.append([Buffer.from(&#39;hello&#39;), Buffer.from(&#39;p2p&#39;), Buffer.from(&#39;world&#39;)]);
+  console.log(&#39;writer length:&#39;, writer.length,
+              &#39;key:&#39;, writer.key.toString(&#39;hex&#39;).slice(0, 12));
+
+  // reader store: opens the core by PUBLIC KEY only — it has no data yet
+  const store2 = new Corestore(dirB);
+  const reader = store2.get({ key: writer.key });
+  await reader.ready();
+
+  // pipe the two replication streams together (stand-in for a socket)
+  const s1 = store.replicate(true);
+  const s2 = store2.replicate(false);
+  s1.pipe(s2).pipe(s1);
+
+  // reader fetches block 2 — verified against the signed root automatically
+  const block = await reader.get(2);
+  console.log(&#39;reader got block 2:&#39;, block.toString()); // &quot;world&quot;
+  process.exit(0);
+}
+main();</code></pre>
+<h3>Experiments</h3>
+<ul><li>In Part A, append 1000 blocks and confirm proof length grows like <code>log₂(n)</code>, not <code>n</code>. That logarithmic proof size is the whole point.</li><li>In Part B, call <code>reader.get(0)</code> before the writer appends (start the reader first), then append — observe that <code>get</code> resolves once the block arrives. Hypercore <code>get</code> means &quot;wait until available.&quot;</li><li>Inspect <code>reader.length</code> vs <code>reader.contiguousLength</code> to see the difference between &quot;known to exist&quot; and &quot;actually downloaded.&quot;</li></ul>
+<h2>2.4 Self-check &amp; interview drill</h2>
+<ul><li>I can explain rarest-first and tit-for-tat choking and what each prevents.</li><li>I can describe how a Merkle proof verifies one block against a signed root.</li><li>My from-scratch Merkle log verifies good blocks and rejects tampered ones.</li><li>I replicated a real Hypercore between a writer and a key-only reader.</li></ul>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/fm-day1.html">« Day 1: Distributed Hash Tables &amp; Kademlia</a>
+<a rel="next" href="/learn/fm-day3.html">Day 3: UDP, TCP/IP &amp; NAT Traversal »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

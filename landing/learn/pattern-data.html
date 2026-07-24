@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Data patterns: logs, LWW, tombstones, sticky names — p2pbuilders learn</title>
+<meta name="description" content="The recurring shapes for P2P state: single-writer logs, fold-to-view, last-write-wins, hide-don’t-delete, first-writer-wins.">
+<link rel="canonical" href="https://p2pbuilders.org/learn/pattern-data.html">
+<meta property="og:title" content="Data patterns: logs, LWW, tombstones, sticky names — p2pbuilders learn">
+<meta property="og:description" content="The recurring shapes for P2P state: single-writer logs, fold-to-view, last-write-wins, hide-don’t-delete, first-writer-wins.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.org/learn/pattern-data.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.org/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Data patterns: logs, LWW, tombstones, sticky names — p2pbuilders learn">
+<meta name="twitter:description" content="The recurring shapes for P2P state: single-writer logs, fold-to-view, last-write-wins, hide-don’t-delete, first-writer-wins.">
+<meta name="twitter:image" content="https://p2pbuilders.org/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Data patterns: logs, LWW, tombstones, sticky names","description":"The recurring shapes for P2P state: single-writer logs, fold-to-view, last-write-wins, hide-don’t-delete, first-writer-wins.","url":"https://p2pbuilders.org/learn/pattern-data.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.org"},"articleSection":"Patterns for P2P apps","timeRequired":"PT9M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-24","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.org/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.org/learn/"},{"@type":"ListItem","position":3,"name":"Data patterns: logs, LWW, tombstones, sticky names","item":"https://p2pbuilders.org/learn/pattern-data.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Patterns for P2P apps</nav>
+<article>
+<div class="meta">9 min read · part of <strong>Patterns for P2P apps</strong> · also readable inside the app (type <code>learn pattern-data</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Data patterns</h1>
+<p>The state-shaped patterns we reach for in every app. Steal freely.</p>
+<h2>1. Single-writer log, many-reader fold</h2>
+<p><strong>The</strong> foundational pattern<br>(<a href="/learn/handbook-logs.html">handbook chapter</a>). Each identity appends ops to<br>its own signed log; every peer folds all followed logs through a pure<br>reducer into a local view. No shared mutable state, no write conflicts, sync<br>is length-compare. Use unless the product <em>demands</em> one canonical shared<br>sequence (then: <a href="/learn/hp-autobase.html">Autobase</a>).</p>
+<h2>2. Op schema with version byte</h2>
+<p>Ops are <code>{ v, type, ts, payload }</code>. <code>v</code> first — logs are forever and you<br>cannot migrate other people&#39;s cores<br>(<a href="/learn/storyteller-1.html">Storyteller 1</a>). Readers skip unknown types and<br>versions without erroring: old clients are permanent.</p>
+<h2>3. Reference, never contain</h2>
+<p>Ops point at targets by id (<code>vote.target</code>, <code>comment.parent</code>); the fold<br>stitches the graph. Deterministic ids — author key + sequence number, or a<br>content hash — cost nothing and never collide.</p>
+<h2>4. Last-write-wins records (with a real tiebreaker)</h2>
+<p>For &quot;current value&quot; state (profiles, votes, follows): key the record<br>(<code>vote!&lt;target&gt;!&lt;voter&gt;</code>), keep the highest <code>(ts, deterministic-tiebreak)</code><br>version. The tiebreak (compare hashes, compare authors — anything total)<br>matters: equal timestamps happen constantly, and peers that break ties<br>differently never converge.</p>
+<h2>5. Tombstones — hide, don&#39;t delete</h2>
+<p>Append-only means no erasure; &quot;delete&quot; is an op that conforming indexers<br>honor by hiding the target (<a href="/learn/handbook-logs.html">the foundations track is honest about this</a>).<br>Enforce authorship <em>in the fold</em> — a tombstone only applies if its author<br>may delete the target (owner, or a role your app defines — p2pbuilders<br>honors admin tombstones for any target, everyone else&#39;s for their own).<br>Never rely on the writing client being polite.</p>
+<h2>6. First-writer-wins (sticky) names</h2>
+<p>Human-readable names in a system with no registry: first<br><code>board<em>create</code> / <code>story</em>create</code> observed for a name wins; later claims<br>are ignored by the fold. An established name cannot be hijacked — even by a<br>claim with a <em>backdated</em> timestamp, which is why &quot;first observed&quot;, plus a<br>deterministic tiebreak for genuine races, beats &quot;earliest claimed&quot;. Squatting<br>on brand-new names remains possible; say so, and let social pressure handle<br>it.</p>
+<h2>7. Keyspace design is query design</h2>
+<p>Views live in ordered stores (<a href="/learn/hp-hyperbee.html">Hyperbee</a>); prefixes are<br>tables, ranges are queries, inverted timestamps give newest-first. Design<br>keys the way you would design indexes.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/build-relay.html">« HiveRelay: dumb storage that keeps P2P online</a>
+<a rel="next" href="/learn/pattern-network.html">Network patterns: topics, gossip, validate-on-ingest »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

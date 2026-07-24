@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ff6600">
+<title>Pear Baby Rooms 3: a room that remembers — p2pbuilders learn</title>
+<meta name="description" content="Swap loose messages for Hypercores: history, catch-up for latecomers, and offline peers.">
+<link rel="canonical" href="https://p2pbuilders.org/learn/rooms-baby-3.html">
+<meta property="og:title" content="Pear Baby Rooms 3: a room that remembers — p2pbuilders learn">
+<meta property="og:description" content="Swap loose messages for Hypercores: history, catch-up for latecomers, and offline peers.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://p2pbuilders.org/learn/rooms-baby-3.html">
+<meta property="og:site_name" content="p2pbuilders">
+<meta property="og:image" content="https://p2pbuilders.org/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pear Baby Rooms 3: a room that remembers — p2pbuilders learn">
+<meta name="twitter:description" content="Swap loose messages for Hypercores: history, catch-up for latecomers, and offline peers.">
+<meta name="twitter:image" content="https://p2pbuilders.org/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","headline":"Pear Baby Rooms 3: a room that remembers","description":"Swap loose messages for Hypercores: history, catch-up for latecomers, and offline peers.","url":"https://p2pbuilders.org/learn/rooms-baby-3.html","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"p2pbuilders","url":"https://p2pbuilders.org"},"articleSection":"Storyteller & Pear Baby Rooms","timeRequired":"PT12M","author":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"publisher":{"@type":"Organization","name":"p2pbuilders","url":"https://p2pbuilders.org","sameAs":["https://github.com/bigdestiny2/p2pbuilders"]},"dateModified":"2026-07-24","isAccessibleForFree":true},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"p2pbuilders","item":"https://p2pbuilders.org/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://p2pbuilders.org/learn/"},{"@type":"ListItem","position":3,"name":"Pear Baby Rooms 3: a room that remembers","item":"https://p2pbuilders.org/learn/rooms-baby-3.html"}]}]}</script>
+<style>:root{--bg:#f6f6ef;--fg:#0b0f14;--dim:#555;--faint:#828282;--orange:#ff6600;--border:#e0e0d2;--code-bg:#ebebe1}
+@media (prefers-color-scheme:dark){:root{--bg:#14130e;--fg:#ebe7d7;--dim:#aaa69a;--faint:#7a7568;--orange:#ff7a1a;--border:#2c2a22;--code-bg:#1b1a15}}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Verdana,Geneva,sans-serif;line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--fg)}a:hover{color:var(--orange)}
+header{background:var(--orange);padding:6px 12px}header .bar{max-width:760px;margin:0 auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header .brand{color:#000;font-weight:700;font-size:14px;text-decoration:none}
+header .nav{display:flex;gap:12px;font-size:13px}header .nav a{color:#000;text-decoration:none}header .nav a:hover{text-decoration:underline}
+main{max-width:760px;margin:0 auto;padding:24px 16px 80px;font-size:15px}
+h1{font-size:24px;margin:0 0 6px;line-height:1.25}h2{font-size:18px;margin:28px 0 8px}h3{font-size:15.5px;margin:20px 0 6px}
+.crumbs{font-size:12.5px;color:var(--faint);margin-bottom:14px}.crumbs a{color:var(--faint)}
+.meta{color:var(--dim);font-size:13px;margin:2px 0 18px}
+code,pre{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13px}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);padding:10px 12px;border-radius:4px;border:1px solid var(--border);overflow-x:auto;line-height:1.5;margin:10px 0}
+pre code{background:transparent;padding:0}
+blockquote{border-left:3px solid var(--orange);margin:10px 0;padding:2px 14px;color:var(--dim)}
+table{border-collapse:collapse;margin:12px 0;font-size:13.5px}th,td{border:1px solid var(--border);padding:5px 10px;text-align:left}
+ul,ol{padding-left:22px}
+.toc{list-style:none;padding:0}.toc li{padding:7px 0;border-top:1px solid var(--border)}.toc li a{font-weight:700;text-decoration:none}
+.toc .tt{color:var(--faint);font-size:13px}
+.sec{margin:26px 0}.sec>p{color:var(--dim);font-size:13.5px;margin:2px 0 6px}
+.pager{display:flex;justify-content:space-between;gap:14px;margin-top:34px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px}
+.pager a{color:var(--dim);text-decoration:none;max-width:48%}.pager a:hover{color:var(--orange)}
+.cta{display:inline-block;margin:6px 8px 0 0;padding:8px 14px;background:var(--orange);color:#000;text-decoration:none;font-weight:700;border-radius:4px;font-size:13.5px}
+footer{max-width:760px;margin:40px auto 20px;padding:24px 16px 0;border-top:1px solid var(--border);font-size:12px;color:var(--faint);line-height:1.8}
+footer a{color:var(--faint)}</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="/">p2pbuilders</a>
+  <nav class="nav">
+    <a href="/learn/">learn</a>
+    <a href="/#board">board</a>
+    <a href="/#join">join</a>
+    <a href="https://github.com/bigdestiny2/p2pbuilders">github</a>
+  </nav>
+</div></header>
+<main>
+
+<nav class="crumbs"><a href="/learn/">learn</a> › Storyteller &amp; Pear Baby Rooms</nav>
+<article>
+<div class="meta">12 min read · part of <strong>Storyteller &amp; Pear Baby Rooms</strong> · also readable inside the app (type <code>learn rooms-baby-3</code> in the terminal, or the learn tab in the browser build)</div>
+<h1>Pear Baby Rooms 3: a room that remembers</h1>
+<p>Rooms 1–2 are walkie-talkies: miss the moment, miss the message. Real apps<br>remember. The P2P way is <strong>not</strong> a shared database — it is *everyone keeps<br>their own signed log, and everyone replicates everyone else&#39;s*.<br>(<a href="/learn/handbook-logs.html">Everything is a signed log</a>.)</p>
+<h2>Each peer writes their own log</h2>
+<pre><code>const Corestore = require(&#39;corestore&#39;)
+const store = new Corestore(&#39;./room-data&#39;)
+
+const mine = store.get({ name: &#39;baby-rooms/chat&#39; })
+await mine.ready()
+
+async function say (text) {
+  await mine.append(Buffer.from(JSON.stringify({ text, ts: Date.now() })))
+}</code></pre>
+<p>Hypercore signs every block for us — lesson 2&#39;s hand-rolled signatures come<br>for free now.</p>
+<h2>Tell peers about your log, replicate theirs</h2>
+<pre><code>swarm.on(&#39;connection&#39;, (socket) =&gt; {
+  store.replicate(socket)                       // sync every known core
+  socket.write(JSON.stringify({ core: mine.key.toString(&#39;hex&#39;) }) + &#39;\n&#39;)
+  socket.on(&#39;data&#39;, (d) =&gt; {
+    for (const line of d.toString().split(&#39;\n&#39;)) {
+      if (!line.trim()) continue
+      const theirs = store.get(Buffer.from(JSON.parse(line).core, &#39;hex&#39;))
+      theirs.ready().then(() =&gt; follow(theirs))
+    }
+  })
+})
+
+function follow (core) {
+  const print = async (i) =&gt;
+    console.log(JSON.parse((await core.get(i)).toString()).text)
+  for (let i = 0; i &lt; core.length; i++) print(i)      // history!
+  core.on(&#39;append&#39;, () =&gt; print(core.length - 1))     // live tail
+}</code></pre>
+<p>Start a room, chat, kill everything, restart: <strong>history is still there.</strong><br>Join late from a third machine: the first <code>follow</code> loop backfills everything<br>you missed.</p>
+<h2>What you just learned</h2>
+<ul><li>&quot;The room&#39;s history&quot; = the union of every member&#39;s log. No log is shared;</li></ul>
+<p>  no write ever conflicts.</p>
+<ul><li>Latecomer catch-up is just reading logs from 0 — sync is length-compare,</li></ul>
+<p>  the reason append-only wins (<a href="/learn/handbook-logs.html">the foundations chapter explains why</a>).</p>
+<ul><li>If everyone sleeps, the room is unreachable — the laptop-lid problem.</li></ul>
+<p>  That is <a href="/learn/handbook-availability.html">availability</a>, and relays fix it.</p>
+<p>You now hold the exact architecture of p2pbuilders — it is this lesson plus<br>an indexer and anti-spam. Graduate to the<br><a href="/learn/storyteller-1.html">Storyteller track</a> to turn logs into a <em>designed</em> app.</p>
+</article>
+<nav class="pager">
+<a rel="prev" href="/learn/rooms-baby-2.html">« Pear Baby Rooms 2: who said that?</a>
+<a rel="next" href="/learn/storyteller-1.html">Storyteller 1: a story is a log »</a>
+</nav>
+</main>
+<footer>
+<p>no cookies. no tracking. no accounts. no server. this page is static; it calls nothing home.</p>
+<p><a href="/">p2pbuilders</a> · <a href="/learn/">learn index</a> · <a href="/llms.txt">llms.txt</a> · <a href="https://github.com/bigdestiny2/p2pbuilders">github</a> · <a href="https://docs.pears.com">pear runtime</a></p>
+<p>run the board: <code>pear run pear://dqz1e6fwyrz1mxj7e…</code></p>
+</footer>
+</body>
+</html>

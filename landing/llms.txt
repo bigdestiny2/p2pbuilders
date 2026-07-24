@@ -1,0 +1,94 @@
+# p2pbuilders
+
+> A permissionless, peer-to-peer Hacker News for people who build P2P software.
+> No servers, no accounts: every user is a keypair, every post is a signed
+> append-only log entry, spam is limited by proof-of-work and
+> reputation-weighted voting, and always-on availability comes from the
+> HiveRelay pinning fleet. Built on the Pear / Holepunch stack (Hypercore,
+> Hyperswarm, Hyperbee, Hyperdrive, Bare). It also ships a free education hub:
+> 37 lessons on P2P engineering.
+
+Run the board in a terminal: `pear run pear://dqz1e6fwyrz1mxj7eqsmcar3hnegrj491t5hnqjm9mda9tz8dzfy`
+Browser build (PearBrowser P2P site): see https://github.com/bigdestiny2/p2pbuilders/tree/main/web
+Full learn corpus in one file: https://p2pbuilders.org/llms-full.txt
+
+## Learn — P2P engineering lessons
+
+### The P2P Engineer's Field Manual
+
+Our 7-day crash course — DHTs and Kademlia to hand-written binary protocols, NAT traversal, Noise handshakes and profiler flame graphs. Every day ends in a runnable lab.
+
+- [Start here: the 7-day syllabus](https://p2pbuilders.org/learn/fm-syllabus.html): What the Field Manual covers, how the seven days fit together, and how to work through it.
+- [Day 1: Distributed Hash Tables & Kademlia](https://p2pbuilders.org/learn/fm-day1.html): The XOR metric that quietly organizes every modern swarm.
+- [Day 2: BitTorrent & Hypercore](https://p2pbuilders.org/learn/fm-day2.html): Two ways to move data with no server: a static swarm and a signed, append-only log.
+- [Day 3: UDP, TCP/IP & NAT Traversal](https://p2pbuilders.org/learn/fm-day3.html): How two machines behind home routers manage to talk directly — the hardest, most-tested topic on the list.
+- [Day 4: Binary Protocols & Serialization](https://p2pbuilders.org/learn/fm-day4.html): Why every serious P2P system hand-rolls its bytes — framing, varints, and zero-copy formats.
+- [Day 5: Cryptographic Primitives](https://p2pbuilders.org/learn/fm-day5.html): Signatures, key exchange, AEAD, and the Noise handshake that secures every Holepunch connection.
+- [Day 6: High-Performance JS Networking](https://p2pbuilders.org/learn/fm-day6.html): The event loop, buffers, backpressure, and the allocation discipline that separates a toy from a relay.
+- [Day 7: Profiling, Optimization & Integration](https://p2pbuilders.org/learn/fm-day7.html): Flame graphs that prove your optimization worked — then build the whole stack end to end.
+
+### P2P Foundations
+
+The ideas underneath everything we build — keys, logs, discovery, availability, trust. Start here if you are new to P2P.
+
+- [Why peer-to-peer](https://p2pbuilders.org/learn/handbook-intro.html): What breaks when everything lives on a server, and what we get back when it does not.
+- [Identity is a keypair](https://p2pbuilders.org/learn/handbook-identity.html): No signup, no recovery, no registry — you are your public key. What that buys and what it costs.
+- [Everything is a signed log](https://p2pbuilders.org/learn/handbook-logs.html): Append-only logs are the atom of P2P data. State is a fold over everyone’s logs.
+- [How peers find each other](https://p2pbuilders.org/learn/handbook-discovery.html): DHTs, topics, and gossip: getting from "I know a hash" to "I have live sockets to strangers".
+- [Staying online without servers](https://p2pbuilders.org/learn/handbook-availability.html): The laptop-lid problem, and how dumb always-on storage (relays) solves it without recreating servers.
+- [Trust without a boss](https://p2pbuilders.org/learn/handbook-trust.html): Spam, sybils and moderation when nobody owns the network: cost, time, and chosen curators.
+
+### Holepunch walkthroughs
+
+Hands-on tours of the building blocks: Pear, Bare, Hypercore, Hyperbee, Hyperdrive, Hyperswarm, Corestore, Autobase.
+
+- [Pear: run, stage, release, seed](https://p2pbuilders.org/learn/hp-pear.html): The P2P runtime — running apps from pear:// links and shipping your own without a server.
+- [Bare: the small JS runtime](https://p2pbuilders.org/learn/hp-bare.html): Node-shaped JavaScript without Node — why P2P apps run on Bare, and how to write portable code.
+- [Hypercore: the signed append-only log](https://p2pbuilders.org/learn/hp-hypercore.html): The atom of the stack — append, read, replicate, verify. With runnable code.
+- [Hyperbee: a database on a log](https://p2pbuilders.org/learn/hp-hyperbee.html): An ordered key/value store encoded as Hypercore blocks — sorted scans, prefixes as tables.
+- [Hyperdrive: a filesystem on two cores](https://p2pbuilders.org/learn/hp-hyperdrive.html): P2P file trees — how drives really store bytes, and the operational trap that follows.
+- [Hyperswarm: find peers by topic](https://p2pbuilders.org/learn/hp-hyperswarm.html): The DHT + holepunching layer — join a 32-byte topic, get encrypted sockets to strangers.
+- [Corestore: many cores, one storage](https://p2pbuilders.org/learn/hp-corestore.html): Namespaced core management — one primary key, deterministic derived cores, one replication stream.
+- [Autobase: many writers, one view](https://p2pbuilders.org/learn/hp-autobase.html): How multi-writer works on single-writer logs: input cores, causal ordering, deterministic views.
+
+### Storyteller & Pear Baby Rooms
+
+Our beginner lesson tracks. Baby Rooms takes you from zero to your first live room; Storyteller builds a real app one chapter at a time.
+
+- [Pear Baby Rooms 1: your first room](https://p2pbuilders.org/learn/rooms-baby-1.html): From zero to two machines chatting P2P: one topic, one swarm, ~40 lines, no server.
+- [Pear Baby Rooms 2: who said that?](https://p2pbuilders.org/learn/rooms-baby-2.html): Keypairs and signatures in the room: prove authorship, keep your name across restarts.
+- [Pear Baby Rooms 3: a room that remembers](https://p2pbuilders.org/learn/rooms-baby-3.html): Swap loose messages for Hypercores: history, catch-up for latecomers, and offline peers.
+- [Storyteller 1: a story is a log](https://p2pbuilders.org/learn/storyteller-1.html): Designing an op schema — the storytelling app as a worked example of thinking in append-only.
+- [Storyteller 2: passing the pen](https://p2pbuilders.org/learn/storyteller-2.html): Multi-writer coordination without a server: fold-with-branching vs. Autobase, and choosing between them.
+
+### Lessons from our ecosystem
+
+Hard-won lessons from running p2pbuilders, peerit and HiveRelay in the wild. Scars included.
+
+- [The transport carries no authority](https://p2pbuilders.org/learn/eco-authority.html): The audit finding that reshaped our engine: trust signatures, never the pipe they arrived through.
+- [Orphan-proof your outbox](https://p2pbuilders.org/learn/eco-outbox.html): How rotating an identity key silently disappeared posts — and the re-merge that fixed it.
+- [Seed the blobs core, not just the metadata](https://p2pbuilders.org/learn/eco-blobs.html): The drive that looked alive but had no bytes: a Hyperdrive is two cores, and relays must pin both.
+- [PoW + reputation: honest limits](https://p2pbuilders.org/learn/eco-antispam.html): What our anti-spam stack actually withstands — published attack math, and why layers beat walls.
+
+### Build articles
+
+Write-ups of things we actually shipped: the terminal HN, the browser port, the relay fleet.
+
+- [Building the terminal HN](https://p2pbuilders.org/learn/build-terminal.html): How the p2pbuilders TUI is put together: one readline loop, a backend of ops, and scope cuts that shipped it.
+- [One engine, two apps: porting to the browser](https://p2pbuilders.org/learn/build-web.html): The PearBrowser port: reusing peerit’s gossip engine verbatim, and the one hook it needed to stay generic.
+- [HiveRelay: dumb storage that keeps P2P online](https://p2pbuilders.org/learn/build-relay.html): The relay fleet behind our apps — pin-by-key, durability proofs, and why relays must stay dumb.
+
+### Patterns for P2P apps
+
+A working catalog of shapes that keep showing up in peer-to-peer apps — steal these.
+
+- [Data patterns: logs, LWW, tombstones, sticky names](https://p2pbuilders.org/learn/pattern-data.html): The recurring shapes for P2P state: single-writer logs, fold-to-view, last-write-wins, hide-don’t-delete, first-writer-wins.
+- [Network patterns: topics, gossip, validate-on-ingest](https://p2pbuilders.org/learn/pattern-network.html): The connectivity shapes: derived topics, key gossip, admission control at the merge, and relay pinning.
+- [App patterns: local-first UI, optimistic writes, honest status](https://p2pbuilders.org/learn/pattern-app.html): Product-layer shapes: render from the local view, mint-then-show, identity UX, and telling users the truth.
+
+## Project
+
+- [About + manifesto](https://p2pbuilders.org/): what p2pbuilders is and how to join
+- [README](https://github.com/bigdestiny2/p2pbuilders#readme): full documentation
+- [SPEC](https://github.com/bigdestiny2/p2pbuilders/blob/main/SPEC.md): op schema, PoW parameters, reputation math, sybil analysis
+- [Pear runtime docs](https://docs.pears.com): the P2P runtime this runs on
