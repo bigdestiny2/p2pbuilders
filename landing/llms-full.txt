@@ -1,8 +1,8 @@
 # p2pbuilders — the complete Learn corpus
 
 > 37 lessons on peer-to-peer engineering from the p2pbuilders
-> project (https://p2pbuilders.com). License: Apache-2.0. Attribution appreciated:
-> link to https://p2pbuilders.com/learn/ when quoting.
+> project (https://p2pbuilders.org). License: Apache-2.0. Attribution appreciated:
+> link to https://p2pbuilders.org/learn/ when quoting.
 
 
 ---
@@ -13,7 +13,7 @@ Our 7-day crash course — DHTs and Kademlia to hand-written binary protocols, N
 
 ---
 
-<!-- lesson: fm-syllabus · https://p2pbuilders.com/learn/fm-syllabus.html -->
+<!-- lesson: fm-syllabus · https://p2pbuilders.org/learn/fm-syllabus.html -->
 
 # The P2P Engineer’s Field Manual
 
@@ -39,7 +39,7 @@ Each day ends in a runnable lab. Do them in order — every chapter leans on the
 
 ---
 
-<!-- lesson: fm-day1 · https://p2pbuilders.com/learn/fm-day1.html -->
+<!-- lesson: fm-day1 · https://p2pbuilders.org/learn/fm-day1.html -->
 
 # Day 01: Distributed Hash Tables & Kademlia
 
@@ -288,7 +288,7 @@ node kad.js
 
 ---
 
-<!-- lesson: fm-day2 · https://p2pbuilders.com/learn/fm-day2.html -->
+<!-- lesson: fm-day2 · https://p2pbuilders.org/learn/fm-day2.html -->
 
 # Day 02: BitTorrent & Hypercore
 
@@ -533,7 +533,7 @@ main();
 
 ---
 
-<!-- lesson: fm-day3 · https://p2pbuilders.com/learn/fm-day3.html -->
+<!-- lesson: fm-day3 · https://p2pbuilders.org/learn/fm-day3.html -->
 
 # Day 03: UDP, TCP/IP & NAT Traversal
 
@@ -736,7 +736,7 @@ node peer.js peerB
 
 ---
 
-<!-- lesson: fm-day4 · https://p2pbuilders.com/learn/fm-day4.html -->
+<!-- lesson: fm-day4 · https://p2pbuilders.org/learn/fm-day4.html -->
 
 # Day 04: Binary Protocols & Serialization
 
@@ -1001,7 +1001,7 @@ can write into a single pre-allocated buffer with no resizing — an allocation 
 
 ---
 
-<!-- lesson: fm-day5 · https://p2pbuilders.com/learn/fm-day5.html -->
+<!-- lesson: fm-day5 · https://p2pbuilders.org/learn/fm-day5.html -->
 
 # Day 05: Cryptographic Primitives
 
@@ -1226,7 +1226,7 @@ console.log('(real Noise also mixes static keys + transcript hash for auth)');
 
 ---
 
-<!-- lesson: fm-day6 · https://p2pbuilders.com/learn/fm-day6.html -->
+<!-- lesson: fm-day6 · https://p2pbuilders.org/learn/fm-day6.html -->
 
 # Day 06: High-Performance JS Networking
 
@@ -1433,7 +1433,7 @@ bug behind most "my P2P node leaks memory under load" reports.
 
 ---
 
-<!-- lesson: fm-day7 · https://p2pbuilders.com/learn/fm-day7.html -->
+<!-- lesson: fm-day7 · https://p2pbuilders.org/learn/fm-day7.html -->
 
 # Day 07: Profiling, Optimization & Integration
 
@@ -1701,7 +1701,7 @@ The ideas underneath everything we build — keys, logs, discovery, availability
 
 ---
 
-<!-- lesson: handbook-intro · https://p2pbuilders.com/learn/handbook-intro.html -->
+<!-- lesson: handbook-intro · https://p2pbuilders.org/learn/handbook-intro.html -->
 
 # Why peer-to-peer
 
@@ -1739,7 +1739,7 @@ When you want to touch code, jump to the
 
 ---
 
-<!-- lesson: handbook-identity · https://p2pbuilders.com/learn/handbook-identity.html -->
+<!-- lesson: handbook-identity · https://p2pbuilders.org/learn/handbook-identity.html -->
 
 # Identity is a keypair
 
@@ -1783,7 +1783,7 @@ the name.
 
 ---
 
-<!-- lesson: handbook-logs · https://p2pbuilders.com/learn/handbook-logs.html -->
+<!-- lesson: handbook-logs · https://p2pbuilders.org/learn/handbook-logs.html -->
 
 # Everything is a signed log
 
@@ -1831,7 +1831,7 @@ log.
 
 ---
 
-<!-- lesson: handbook-discovery · https://p2pbuilders.com/learn/handbook-discovery.html -->
+<!-- lesson: handbook-discovery · https://p2pbuilders.org/learn/handbook-discovery.html -->
 
 # How peers find each other
 
@@ -1877,7 +1877,7 @@ from B without ever meeting A on the DHT.
 
 ---
 
-<!-- lesson: handbook-availability · https://p2pbuilders.com/learn/handbook-availability.html -->
+<!-- lesson: handbook-availability · https://p2pbuilders.org/learn/handbook-availability.html -->
 
 # Staying online without servers
 
@@ -1921,7 +1921,7 @@ survive with 5+ relays across 3 continents even when every author sleeps.
 
 ---
 
-<!-- lesson: handbook-trust · https://p2pbuilders.com/learn/handbook-trust.html -->
+<!-- lesson: handbook-trust · https://p2pbuilders.org/learn/handbook-trust.html -->
 
 # Trust without a boss
 
@@ -1981,7 +1981,7 @@ Hands-on tours of the building blocks: Pear, Bare, Hypercore, Hyperbee, Hyperdri
 
 ---
 
-<!-- lesson: hp-pear · https://p2pbuilders.com/learn/hp-pear.html -->
+<!-- lesson: hp-pear · https://p2pbuilders.org/learn/hp-pear.html -->
 
 # Pear: run, stage, release, seed
 
@@ -2040,7 +2040,7 @@ Full docs: https://docs.pears.com
 
 ---
 
-<!-- lesson: hp-bare · https://p2pbuilders.com/learn/hp-bare.html -->
+<!-- lesson: hp-bare · https://p2pbuilders.org/learn/hp-bare.html -->
 
 # Bare: the small JS runtime
 
@@ -2094,7 +2094,7 @@ module owns the differences; everything else imports the shim.
 
 ---
 
-<!-- lesson: hp-hypercore · https://p2pbuilders.com/learn/hp-hypercore.html -->
+<!-- lesson: hp-hypercore · https://p2pbuilders.org/learn/hp-hypercore.html -->
 
 # Hypercore: the signed append-only log
 
@@ -2148,7 +2148,7 @@ Hypercore*, and the whole stack makes sense once that clicks.
 
 ---
 
-<!-- lesson: hp-hyperbee · https://p2pbuilders.com/learn/hp-hyperbee.html -->
+<!-- lesson: hp-hyperbee · https://p2pbuilders.org/learn/hp-hyperbee.html -->
 
 # Hyperbee: a database on a log
 
@@ -2204,7 +2204,7 @@ scans return newest-first, so "latest 50 posts" is a limited range read.
 
 ---
 
-<!-- lesson: hp-hyperdrive · https://p2pbuilders.com/learn/hp-hyperdrive.html -->
+<!-- lesson: hp-hyperdrive · https://p2pbuilders.org/learn/hp-hyperdrive.html -->
 
 # Hyperdrive: a filesystem on two cores
 
@@ -2254,7 +2254,7 @@ anything on drives, read it.
 
 ---
 
-<!-- lesson: hp-hyperswarm · https://p2pbuilders.com/learn/hp-hyperswarm.html -->
+<!-- lesson: hp-hyperswarm · https://p2pbuilders.org/learn/hp-hyperswarm.html -->
 
 # Hyperswarm: find peers by topic
 
@@ -2305,7 +2305,7 @@ handler so any peer can vanish at any moment and nothing breaks.
 
 ---
 
-<!-- lesson: hp-corestore · https://p2pbuilders.com/learn/hp-corestore.html -->
+<!-- lesson: hp-corestore · https://p2pbuilders.org/learn/hp-corestore.html -->
 
 # Corestore: many cores, one storage
 
@@ -2349,7 +2349,7 @@ raw Hypercore with its own storage path once an app grows past hello-world.
 
 ---
 
-<!-- lesson: hp-autobase · https://p2pbuilders.com/learn/hp-autobase.html -->
+<!-- lesson: hp-autobase · https://p2pbuilders.org/learn/hp-autobase.html -->
 
 # Autobase: many writers, one view
 
@@ -2406,7 +2406,7 @@ Our beginner lesson tracks. Baby Rooms takes you from zero to your first live ro
 
 ---
 
-<!-- lesson: rooms-baby-1 · https://p2pbuilders.com/learn/rooms-baby-1.html -->
+<!-- lesson: rooms-baby-1 · https://p2pbuilders.org/learn/rooms-baby-1.html -->
 
 # Pear Baby Rooms 1: your first room
 
@@ -2467,7 +2467,7 @@ encrypted, holepunched, serverless connection.
 
 ---
 
-<!-- lesson: rooms-baby-2 · https://p2pbuilders.com/learn/rooms-baby-2.html -->
+<!-- lesson: rooms-baby-2 · https://p2pbuilders.org/learn/rooms-baby-2.html -->
 
 # Pear Baby Rooms 2: who said that?
 
@@ -2539,7 +2539,7 @@ function receive (line) {
 
 ---
 
-<!-- lesson: rooms-baby-3 · https://p2pbuilders.com/learn/rooms-baby-3.html -->
+<!-- lesson: rooms-baby-3 · https://p2pbuilders.org/learn/rooms-baby-3.html -->
 
 # Pear Baby Rooms 3: a room that remembers
 
@@ -2607,7 +2607,7 @@ an indexer and anti-spam. Graduate to the
 
 ---
 
-<!-- lesson: storyteller-1 · https://p2pbuilders.com/learn/storyteller-1.html -->
+<!-- lesson: storyteller-1 · https://p2pbuilders.org/learn/storyteller-1.html -->
 
 # Storyteller 1: a story is a log
 
@@ -2661,7 +2661,7 @@ Next: several people, one story, and who holds the pen —
 
 ---
 
-<!-- lesson: storyteller-2 · https://p2pbuilders.com/learn/storyteller-2.html -->
+<!-- lesson: storyteller-2 · https://p2pbuilders.org/learn/storyteller-2.html -->
 
 # Storyteller 2: passing the pen
 
@@ -2722,7 +2722,7 @@ Hard-won lessons from running p2pbuilders, peerit and HiveRelay in the wild. Sca
 
 ---
 
-<!-- lesson: eco-authority · https://p2pbuilders.com/learn/eco-authority.html -->
+<!-- lesson: eco-authority · https://p2pbuilders.org/learn/eco-authority.html -->
 
 # The transport carries no authority
 
@@ -2771,7 +2771,7 @@ are yours again.
 
 ---
 
-<!-- lesson: eco-outbox · https://p2pbuilders.com/learn/eco-outbox.html -->
+<!-- lesson: eco-outbox · https://p2pbuilders.org/learn/eco-outbox.html -->
 
 # Orphan-proof your outbox
 
@@ -2821,7 +2821,7 @@ Costs nothing measurable; removes a whole failure class.
 
 ---
 
-<!-- lesson: eco-blobs · https://p2pbuilders.com/learn/eco-blobs.html -->
+<!-- lesson: eco-blobs · https://p2pbuilders.org/learn/eco-blobs.html -->
 
 # Seed the blobs core, not just the metadata
 
@@ -2873,7 +2873,7 @@ trusting an acceptance handshake.
 
 ---
 
-<!-- lesson: eco-antispam · https://p2pbuilders.com/learn/eco-antispam.html -->
+<!-- lesson: eco-antispam · https://p2pbuilders.org/learn/eco-antispam.html -->
 
 # PoW + reputation: honest limits
 
@@ -2930,7 +2930,7 @@ Write-ups of things we actually shipped: the terminal HN, the browser port, the 
 
 ---
 
-<!-- lesson: build-terminal · https://p2pbuilders.com/learn/build-terminal.html -->
+<!-- lesson: build-terminal · https://p2pbuilders.org/learn/build-terminal.html -->
 
 # Building the terminal HN
 
@@ -2983,7 +2983,7 @@ UI is whatever is cheapest today" — the whole premise of the
 
 ---
 
-<!-- lesson: build-web · https://p2pbuilders.com/learn/build-web.html -->
+<!-- lesson: build-web · https://p2pbuilders.org/learn/build-web.html -->
 
 # One engine, two apps: porting to the browser
 
@@ -3035,7 +3035,7 @@ part that holds the security model.
 
 ---
 
-<!-- lesson: build-relay · https://p2pbuilders.com/learn/build-relay.html -->
+<!-- lesson: build-relay · https://p2pbuilders.org/learn/build-relay.html -->
 
 # HiveRelay: dumb storage that keeps P2P online
 
@@ -3097,7 +3097,7 @@ A working catalog of shapes that keep showing up in peer-to-peer apps — steal 
 
 ---
 
-<!-- lesson: pattern-data · https://p2pbuilders.com/learn/pattern-data.html -->
+<!-- lesson: pattern-data · https://p2pbuilders.org/learn/pattern-data.html -->
 
 # Data patterns
 
@@ -3160,7 +3160,7 @@ keys the way you would design indexes.
 
 ---
 
-<!-- lesson: pattern-network · https://p2pbuilders.com/learn/pattern-network.html -->
+<!-- lesson: pattern-network · https://p2pbuilders.org/learn/pattern-network.html -->
 
 # Network patterns
 
@@ -3216,7 +3216,7 @@ the design is not done.
 
 ---
 
-<!-- lesson: pattern-app · https://p2pbuilders.com/learn/pattern-app.html -->
+<!-- lesson: pattern-app · https://p2pbuilders.org/learn/pattern-app.html -->
 
 # App patterns
 

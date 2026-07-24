@@ -115,6 +115,39 @@ for AI crawlers). After editing lesson content, regenerate and commit:
 node scripts/build-landing-learn.mjs   # BASE_URL=https://… to override the domain
 ```
 
+## Deploy the landing site (p2pbuilders.org)
+
+The landing site (everything under [`landing/`](landing/)) deploys to **GitHub
+Pages** automatically: [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)
+publishes `landing/` on every push to `main` that touches it (or manually via
+the workflow's *Run workflow* button). No build step — what's in the folder is
+what ships.
+
+**One-time setup:**
+
+1. Repo **Settings → Pages** → Source: **GitHub Actions**.
+2. Same page → Custom domain: **p2pbuilders.org** → Save. Tick **Enforce
+   HTTPS** once the certificate is issued (a few minutes after DNS resolves).
+3. At your DNS registrar for `p2pbuilders.org`:
+
+   | type | host | value |
+   | --- | --- | --- |
+   | A | `@` | `185.199.108.153` |
+   | A | `@` | `185.199.109.153` |
+   | A | `@` | `185.199.110.153` |
+   | A | `@` | `185.199.111.153` |
+   | AAAA | `@` | `2606:50c0:8000::153` |
+   | AAAA | `@` | `2606:50c0:8001::153` |
+   | AAAA | `@` | `2606:50c0:8002::153` |
+   | AAAA | `@` | `2606:50c0:8003::153` |
+   | CNAME | `www` | `bigdestiny2.github.io` |
+
+**Verify after the first deploy:** `https://p2pbuilders.org/` (landing),
+`/learn/` (37 crawlable lesson pages), `/sitemap.xml`, `/robots.txt`,
+`/llms.txt`, `/llms-full.txt`. Then submit the sitemap in
+[Google Search Console](https://search.google.com/search-console) and
+[Bing Webmaster Tools](https://www.bing.com/webmasters) to start indexing.
+
 ## What's in here
 
 ```
@@ -139,7 +172,7 @@ src/
 └── relay/
     └── server.js     self-hosted hiverelay with @hyperswarm/dht-relay endpoint
 
-landing/              static site for p2pbuilders.com
+landing/              static site for p2pbuilders.org
 public/               parked browser/desktop UI (dev mode) — not the terminal app
 ios-app/              minimal Xcode project using bare-kit-pear (parked)
 scripts/

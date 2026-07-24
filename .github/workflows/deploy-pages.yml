@@ -1,0 +1,44 @@
+# Deploys the static landing site (landing/) — including the SEO/LLM mirror of
+# the Learn hub — to GitHub Pages, serving p2pbuilders.org.
+#
+# One-time setup (repo Settings → Pages):
+#   1. Source: "GitHub Actions"
+#   2. Custom domain: p2pbuilders.org  (then tick "Enforce HTTPS" once the
+#      certificate is issued)
+# DNS at your registrar (see README "Deploy the landing site"):
+#   apex A     185.199.108.153 / 185.199.109.153 / 185.199.110.153 / 185.199.111.153
+#   apex AAAA  2606:50c0:8000::153 / 8001::153 / 8002::153 / 8003::153
+#   www CNAME  bigdestiny2.github.io
+name: deploy-landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'landing/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: landing
+      - id: deployment
+        uses: actions/deploy-pages@v4

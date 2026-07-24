@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // build-landing-learn.mjs — generate the SEO/LLM-crawlable static mirror of the
-// Learn hub onto the landing site (p2pbuilders.com):
+// Learn hub onto the landing site (p2pbuilders.org):
 //
 //   landing/learn/index.html      hub index (ItemList JSON-LD)
 //   landing/learn/<id>.html       one page per lesson (TechArticle JSON-LD,
@@ -24,7 +24,7 @@ import { renderMarkdown, excerpt } from '../web/js/markdown.js'
 const __dir = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dir, '..')
 const OUT = join(ROOT, 'landing', 'learn')
-const BASE = process.env.BASE_URL || 'https://p2pbuilders.com'
+const BASE = process.env.BASE_URL || 'https://p2pbuilders.org'
 const PEAR_LINK = 'pear://dqz1e6fwyrz1mxj7eqsmcar3hnegrj491t5hnqjm9mda9tz8dzfy'
 const GITHUB = 'https://github.com/bigdestiny2/p2pbuilders'
 
