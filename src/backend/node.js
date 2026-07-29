@@ -26,6 +26,7 @@ class Node extends EventEmitter {
     this._cleanup = cleanup
     this.swarm = null
     this._tracked = new Map() // hex(pubkey) -> remote Hypercore
+    this._announces = new Set() // live announce-channel handles
   }
 
   static async openDisk (dir, opts) {
@@ -43,7 +44,7 @@ class Node extends EventEmitter {
   get pubkey () { return this.core.key }
   get length () { return this.core.length }
 
-  async attachSwarm ({ bootstrap, keyPair, autoTrack = true, relays = [] } = {}) {
+  async attachSwarm ({ bootstrap, keyPair, autoTrack = true, relays = [], firewalled, host, port } = {}) {
     if (this.swarm) throw new Error('swarm already attached')
     const onConnection = ({ muxer }) => {
       setupAnnounce(muxer, {
@@ -52,10 +53,12 @@ class Node extends EventEmitter {
         onKey: (pubkey) => {
           if (autoTrack) this.trackUser(pubkey).catch(err => this.emit('error', err))
           this.emit('announce', pubkey)
-        }
+        },
+        onOpen: (handle) => this._announces.add(handle),
+        onClose: (handle) => this._announces.delete(handle)
       })
     }
-    this.swarm = new SwarmHub(this.store, { bootstrap, keyPair, onConnection })
+    this.swarm = new SwarmHub(this.store, { bootstrap, keyPair, onConnection, firewalled, host, port })
     for (const pk of relays) this.swarm.joinPeer(pk)
     return this.swarm
   }
@@ -94,6 +97,13 @@ class Node extends EventEmitter {
     // it costs a small counter. close() takes care of teardown.
     const done = remote.findingPeers()
     remote.on('close', done)
+    // Gossip the newly learned key to peers we're already connected to — the
+    // channel-open exchange only covers keys known at connect time, so without
+    // this, transitive discovery depends on connection ordering. Each node only
+    // re-announces a key the first time it tracks it, so the flood terminates.
+    for (const handle of this._announces) {
+      try { handle.sendKeys([pubkey]) } catch { /* channel tearing down */ }
+    }
     this.emit('track', pubkey)
     return remote
   }

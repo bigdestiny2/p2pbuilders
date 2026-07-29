@@ -1,14 +1,22 @@
 'use strict'
 
 const Hyperswarm = require('hyperswarm')
+const DHT = require('hyperdht')
 
 // Wraps Hyperswarm, pipes every connection into the corestore replicator.
 // If onConnection is provided, it's invoked per connection with { conn, stream, muxer }
 // so callers can attach additional protomux channels (e.g. announce).
+// `firewalled`/`host`/`port` are forwarded to a dedicated HyperDHT instance —
+// tests and LAN deployments pass { firewalled: false, host: '127.0.0.1' } so
+// server connections don't depend on holepunching. Hyperswarm destroys the DHT
+// it's handed, so no extra teardown is needed here.
 class SwarmHub {
-  constructor (store, { bootstrap, keyPair, onConnection } = {}) {
+  constructor (store, { bootstrap, keyPair, onConnection, firewalled, host, port } = {}) {
     this.store = store
-    this.swarm = new Hyperswarm({ bootstrap, keyPair })
+    const needsOwnDht = firewalled !== undefined || host !== undefined || port !== undefined
+    this.swarm = needsOwnDht
+      ? new Hyperswarm({ keyPair, dht: new DHT({ bootstrap, firewalled, host, port }) })
+      : new Hyperswarm({ bootstrap, keyPair })
     this.swarm.on('connection', (conn) => {
       const stream = this.store.replicate(conn)
       const muxer = stream.noiseStream.userData

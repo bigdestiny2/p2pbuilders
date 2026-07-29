@@ -291,15 +291,16 @@
           <p><strong>install pear</strong> — the p2p runtime holepunch ships.</p>
 <pre><code>npm install -g pear
 pear</code></pre>
-          <p>the second command bootstraps the real runtime. takes 30s on first run.</p>
+          <p>
+            the second command bootstraps the real runtime and adds it to your
+            <code>PATH</code>. takes 30s on first run.
+          </p>
         </li>
 
         <li>
-          <p><strong>add pear to your path.</strong> one-time setup.</p>
-<pre><code>echo 'export PATH="$HOME/Library/Application Support/pear/bin:$PATH"' &gt;&gt; ~/.zshrc
-source ~/.zshrc
-which pear
-# should print: /Users/you/Library/Application Support/pear/bin/pear</code></pre>
+          <p><strong>open a new terminal</strong> so the <code>PATH</code> change takes effect.</p>
+<pre><code>which pear
+# should print: ~/.local/bin/pear</code></pre>
         </li>
 
         <li>

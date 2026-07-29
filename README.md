@@ -12,9 +12,11 @@ Install Pear once:
 
 ```
 npm i -g pear
-pear                            # bootstraps the runtime
-export PATH="$HOME/Library/Application Support/pear/bin:$PATH"
+pear                            # bootstraps the runtime + adds pear to your PATH
 ```
+
+Then open a new terminal so the PATH change takes effect (`which pear` should
+print `~/.local/bin/pear` on macOS/Linux).
 
 Run p2pbuilders:
 
@@ -106,7 +108,7 @@ scripts/
   publish.js          publish a directory to hiverelay
   seed-pear.js        ask hiverelay to seed a pear:// key
   probe-relays.mjs    list relays currently pinning the live key
-test/                 41 tests covering every layer
+test/                 42 tests covering every layer
 ```
 
 ## How it works
@@ -138,7 +140,7 @@ npm install
 # run the optional Node dev server (browser at http://localhost:8787)
 npm run dev
 
-# run the full test suite (41 tests)
+# run the full test suite (42 backend tests + 24 web engine checks)
 npm test
 ```
 
@@ -180,7 +182,7 @@ node scripts/publish.js                  # publish ./public as a hyperdrive
 
 **Shipping now:**
 - Terminal app (TUI) via `pear run pear://…`
-- Full backend verified with 41 tests
+- Full backend verified with 42 tests (plus 24 web engine checks)
 - Auto-seeding to the public hiverelay network
 
 **Parked:**

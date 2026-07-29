@@ -33,11 +33,12 @@ async function startRelay ({
   boards = [],
   bootstrap,
   dhtRelayPort,
-  announcePubkey = true
+  announcePubkey = true,
+  swarmOpts = {} // extra SwarmHub/DHT options, e.g. { firewalled: false, host: '127.0.0.1' } for local testnets
 } = {}) {
   if (!dir) throw new Error('dir required')
   const node = await Node.openDisk(dir, {
-    swarm: bootstrap ? { bootstrap } : {}
+    swarm: { ...(bootstrap ? { bootstrap } : {}), ...swarmOpts }
   })
   for (const name of boards) await node.joinBoard(name)
 
