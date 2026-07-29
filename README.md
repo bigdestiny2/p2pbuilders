@@ -101,7 +101,7 @@ src/
 └── relay/
     └── server.js     self-hosted hiverelay with @hyperswarm/dht-relay endpoint
 
-landing/              static site for p2pbuilders.com
+landing/              static site for p2pbuilders.org
 public/               parked browser/desktop UI (dev mode) — not the terminal app
 ios-app/              minimal Xcode project using bare-kit-pear (parked)
 scripts/

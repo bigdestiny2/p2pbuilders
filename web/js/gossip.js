@@ -166,9 +166,17 @@ class GossipSync {
   async _onBus (m) {
     if (!m || !m.t) return
     const me = this.getMe()
-    if (m.t === 'hello' && m.pub && m.pub !== me) {
+    if (m.pub === me) {
+      // A sibling tab running the SAME user wrote our outbox (tabs share
+      // localStorage). Nothing to ingest — the records are already on disk —
+      // but our merged cache predates them. Drop it and re-render. No
+      // re-broadcast here, or two same-user tabs would ping-pong forever.
+      if (m.t === 'hello' || m.t === 'outbox') { this._invalidate(); this._emit() }
+      return
+    }
+    if (m.t === 'hello' && m.pub) {
       this._addPeer(m.pub); await this._broadcastMine(); this._invalidate(); this._emit()
-    } else if (m.t === 'outbox' && m.pub && m.pub !== me) {
+    } else if (m.t === 'outbox' && m.pub) {
       this._addPeer(m.pub)
       const incoming = m.view || {}
       const secure = isSecure()
@@ -188,7 +196,11 @@ class GossipSync {
         const sk = stickyKey(typeFromKey(k), iv)
         if (!cur[k] || (sk != null ? nameWins(iv, cur[k]) : laterRecord(iv, cur[k]))) { cur[k] = iv; changed = true }
       }
-      if (changed) { this._write(outboxKey(m.pub), cur); this._invalidate() }
+      if (changed) this._write(outboxKey(m.pub), cur)
+      // Invalidate even when nothing was written: when tabs share storage the
+      // sender's tab already persisted these records, so `changed` is false
+      // here while our merged cache still predates them.
+      this._invalidate()
       this._emit()
     }
   }

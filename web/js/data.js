@@ -254,6 +254,10 @@ export class Data {
     return data
   }
   unblock (target) { return this.block(target, false, false) }
+  async blockedTargets (pub) {
+    const rows = await this.sync.list(keys.blocksBy(pub), { limit: 1000 })
+    return rows.map(r => r.value).filter(v => v && v.active).map(v => v.target)
+  }
 
   async publishBlocklist (list) {
     const me = this.me()
