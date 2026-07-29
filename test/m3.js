@@ -9,6 +9,7 @@ const b4a = require('b4a')
 const { Node } = require('../src/backend/node')
 const createTestnet = require('hyperdht/testnet')
 const { decodeOp } = require('../src/backend/ops')
+const { localSwarm } = require('./_helpers')
 
 const tests = []
 function test (name, fn) { tests.push({ name, fn }) }
@@ -17,8 +18,8 @@ test('swarm+announce: B auto-tracks A after joining same board', async () => {
   const testnet = await createTestnet(3, { teardown: () => {} })
   const bootstrap = testnet.bootstrap
 
-  const a = await Node.openTemp({ swarm: { bootstrap } })
-  const b = await Node.openTemp({ swarm: { bootstrap } })
+  const a = await Node.openTemp({ swarm: localSwarm(bootstrap) })
+  const b = await Node.openTemp({ swarm: localSwarm(bootstrap) })
 
   await a.post('general', 'auto-discovery test', 'body')
 
@@ -44,9 +45,9 @@ test('swarm+announce: transitive discovery (C learns A via B)', async () => {
   const testnet = await createTestnet(3, { teardown: () => {} })
   const bootstrap = testnet.bootstrap
 
-  const a = await Node.openTemp({ swarm: { bootstrap } })
-  const b = await Node.openTemp({ swarm: { bootstrap } })
-  const c = await Node.openTemp({ swarm: { bootstrap } })
+  const a = await Node.openTemp({ swarm: localSwarm(bootstrap) })
+  const b = await Node.openTemp({ swarm: localSwarm(bootstrap) })
+  const c = await Node.openTemp({ swarm: localSwarm(bootstrap) })
 
   await a.post('general', 'hello', 'from A')
 
@@ -64,6 +65,37 @@ test('swarm+announce: transitive discovery (C learns A via B)', async () => {
 
   const aCoreOnC = c.userCore(a.pubkey)
   assert.ok(aCoreOnC, 'C discovered A via B')
+
+  await a.close()
+  await b.close()
+  await c.close()
+  await testnet.destroy()
+})
+
+test('swarm+announce: late announce — C learns a key B tracked after C connected', async () => {
+  const testnet = await createTestnet(3, { teardown: () => {} })
+  const bootstrap = testnet.bootstrap
+
+  const a = await Node.openTemp({ swarm: localSwarm(bootstrap) })
+  const b = await Node.openTemp({ swarm: localSwarm(bootstrap) })
+  const c = await Node.openTemp({ swarm: localSwarm(bootstrap) })
+
+  // B and C connect first, before B knows anything about A. The channel-open
+  // key exchange between B and C therefore cannot carry A's key.
+  await b.joinBoard('meta')
+  await c.joinBoard('meta')
+  await waitForEvent(c, 'track', (pk) => b4a.equals(pk, b.pubkey), 15000)
+
+  // Now A shows up on a board shared with B only.
+  await a.joinBoard('general')
+  await b.joinBoard('general')
+  await waitForEvent(b, 'track', (pk) => b4a.equals(pk, a.pubkey), 15000)
+
+  // C must learn A via B's re-broadcast on the already-open channel.
+  if (!c.userCore(a.pubkey)) {
+    await waitForEvent(c, 'track', (pk) => b4a.equals(pk, a.pubkey), 15000)
+  }
+  assert.ok(c.userCore(a.pubkey), 'C discovered A via late announce')
 
   await a.close()
   await b.close()

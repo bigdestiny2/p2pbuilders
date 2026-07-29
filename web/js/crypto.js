@@ -35,8 +35,10 @@ async function detect () {
       if (okk) { backend = 'subtle'; return }
     }
   } catch {}
-  // Fall back to node:crypto.
+  // Fall back to node:crypto — never in a browser, where the import can't
+  // succeed and only produces a scary CORS/404 console error.
   try {
+    if (typeof window !== 'undefined') { backend = 'none'; return }
     const mod = await import('node:crypto')
     nodeCrypto = mod.default || mod
     const { privateKey, publicKey } = nodeCrypto.generateKeyPairSync('ed25519')

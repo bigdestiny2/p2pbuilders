@@ -16,6 +16,7 @@ const createTestnet = require('hyperdht/testnet')
 const { Node } = require('../src/backend/node')
 const { startRelay } = require('../src/relay/server')
 const { decodeOp } = require('../src/backend/ops')
+const { localSwarm } = require('./_helpers')
 const fs = require('fs'), os = require('os'), path = require('path')
 
 const tests = []
@@ -37,9 +38,15 @@ test('relay seeds offline author to late-arriving peer', async () => {
   const bootstrap = testnet.bootstrap
 
   const relayDir = mkdir()
-  const relay = await startRelay({ dir: relayDir, boards: ['general'], bootstrap, announcePubkey: false })
+  const relay = await startRelay({
+    dir: relayDir,
+    boards: ['general'],
+    bootstrap,
+    announcePubkey: false,
+    swarmOpts: { firewalled: false, host: '127.0.0.1' }
+  })
 
-  const a = await Node.openTemp({ swarm: { bootstrap } })
+  const a = await Node.openTemp({ swarm: localSwarm(bootstrap) })
   await a.joinBoard('general')
 
   // wait for the relay to see A
@@ -57,7 +64,7 @@ test('relay seeds offline author to late-arriving peer', async () => {
   await a.close()
 
   // B comes online, joins same board
-  const b = await Node.openTemp({ swarm: { bootstrap } })
+  const b = await Node.openTemp({ swarm: localSwarm(bootstrap) })
   await b.joinBoard('general')
 
   // B learns about A's pubkey via the relay's announce

@@ -37,7 +37,8 @@
     "pear:stage": "pear stage dev .",
     "relay": "node src/relay/server.js",
     "publish": "node scripts/publish.js",
-    "test": "node test/m1.js && node test/m2.js && node test/m3.js && node test/m4.js && node test/m5.js && node test/m6.js && node test/m7.js && node test/m8.js && node test/m9.js && node test/m10-bare.js && node test/m11.js"
+    "test": "node test/m1.js && node test/m2.js && node test/m3.js && node test/m4.js && node test/m5.js && node test/m6.js && node test/m7.js && node test/m8.js && node test/m9.js && node test/m10-bare.js && node test/m11.js && npm run test:web",
+    "test:web": "node web/test/engine.mjs"
   },
   "pear": {
     "name": "p2pbuilders",

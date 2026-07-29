@@ -12,6 +12,7 @@ const { Node } = require('../src/backend/node')
 const { connectDirect } = require('../src/backend/swarm')
 const { boardTopic } = require('../src/backend/board')
 const createTestnet = require('hyperdht/testnet')
+const { localSwarm } = require('./_helpers')
 
 const tests = []
 function test (name, fn) { tests.push({ name, fn }) }
@@ -95,8 +96,8 @@ test('swarm: two nodes joining same board connect + replicate', async () => {
   const testnet = await createTestnet(3, { teardown: () => {} })
   const bootstrap = testnet.bootstrap
 
-  const a = await Node.openTemp({ swarm: { bootstrap } })
-  const b = await Node.openTemp({ swarm: { bootstrap } })
+  const a = await Node.openTemp({ swarm: localSwarm(bootstrap) })
+  const b = await Node.openTemp({ swarm: localSwarm(bootstrap) })
 
   await a.post('general', 'swarm-test', 'over the wire')
 

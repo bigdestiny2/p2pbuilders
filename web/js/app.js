@@ -138,7 +138,7 @@ async function viewFeed ({ board, query, guard, token }) {
   const sort = query.sort || prefs.sort || 'hot'
   guard(skeleton())
   let posts = board === 'all' ? await data.listAllPosts() : await data.listPostsIn(board)
-  const blocked = await data.blockedSet([], prefs.blocklistSubs())
+  const blocked = await data.blockedSet(await data.blockedTargets(identity.me().pubkey), prefs.blocklistSubs())
   posts = posts.filter(p => !p.deleted && !blocked.has(p.author) && !prefs.isHidden(p.board + '/' + p.cid))
   posts = await data.withTallies(posts)
   await primeNames(posts.map(p => p.author))
@@ -296,11 +296,11 @@ async function viewProfile ({ pub, guard, token }) {
   const profile = await data.getProfile(pub)
   const act = await data.userActivity(pub)
   const inputs = await data.weightInputsFor(pub)
-  const followers = mine ? await data.following(me.pubkey) : []
+  const myFollowing = mine ? [] : await data.following(me.pubkey)
   await primeNames([pub])
   if (token !== renderToken) return
   const items = [...act.posts.map(p => ({ k: 'post', t: p.createdAt, p })), ...act.comments.map(c => ({ k: 'comment', t: c.createdAt, c }))].sort((a, b) => b.t - a.t).slice(0, 60)
-  const isFollowing = followers.includes(pub)
+  const isFollowing = myFollowing.includes(pub)
   const feed = items.length ? items.map(it => it.k === 'post'
     ? `<li class="act"><span class="atag">post</span> <a href="${buildRoute(['b', it.p.board, 'item', it.p.cid])}">${esc(it.p.title)}</a> <span class="dim">in b/${esc(it.p.board)} · ${timeAgo(it.p.createdAt)}</span></li>`
     : `<li class="act"><span class="atag">comment</span> on <a href="${buildRoute(['b', it.c.board || 'front', 'item', it.c.postCid])}">${esc(it.c.postTitle || 'a post')}</a> <span class="dim">${timeAgo(it.c.createdAt)}</span><div class="md small">${renderMarkdown(it.c.body)}</div></li>`).join('') : '<li class="dim">No activity yet.</li>'
@@ -457,6 +457,15 @@ async function seedDemo () {
   toast('demo ready'); location.hash = '#/'; route()
 }
 
+// A boot failure must never strand the splash screen silently.
+function bootSafe () {
+  boot().catch((err) => {
+    console.error('boot failed:', err)
+    const sub = document.querySelector('.boot-sub')
+    if (sub) sub.innerHTML = `failed to start: ${esc(err && err.message ? err.message : String(err))}<br>see the browser console for details.`
+  })
+}
+
 if (typeof window !== 'undefined') window.__p2pb = { get data () { return data }, get sync () { return sync }, route }
-if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot() }
+if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootSafe); else bootSafe() }
 export { boot }

@@ -105,6 +105,34 @@ async function main () {
   const notBlocked = await alice.data.blockedSet([], [])
   ok(!notBlocked.has('spammerPubkeyXYZ'), 'unsubscribed = not blocked')
 
+  console.log('\n— own blocks —')
+  await alice.data.block(bob.pub, true)
+  ok((await alice.data.blockedTargets(alice.pub)).includes(bob.pub), 'blockedTargets lists own active blocks')
+  const withOwn = await alice.data.blockedSet(await alice.data.blockedTargets(alice.pub), [])
+  ok(withOwn.has(bob.pub), 'own block flows into the effective blocked set')
+  await alice.data.unblock(bob.pub)
+  ok(!(await alice.data.blockedTargets(alice.pub)).includes(bob.pub), 'unblock deactivates the record')
+
+  console.log('\n— shared-storage tabs (browser multi-tab dev mode) —')
+  // Two "tabs": distinct users, SAME storage object (like two browser tabs
+  // sharing localStorage). The sender's tab persists records before the bus
+  // message arrives, so the receiver ingests nothing new — its merged cache
+  // must still be invalidated or it renders a stale (empty) view forever.
+  const tabHub = makeHub()
+  const tabStorage = mem()
+  const idT1 = new DevIdentity(tabStorage, mem()); await idT1.ready(); await idT1.createUser('tab1')
+  const idT2 = new DevIdentity(tabStorage, mem()); await idT2.ready(); await idT2.createUser('tab2')
+  const tv = makeValidator(BITS)
+  const tab1 = new GossipSync({ storage: tabStorage, bus: tabHub.connect(), getMe: () => idT1.me().pubkey, validate: tv })
+  const tab2 = new GossipSync({ storage: tabStorage, bus: tabHub.connect(), getMe: () => idT2.me().pubkey, validate: tv })
+  await tab1.ready(); await tab2.ready()
+  const d1 = createData(tab1, idT1, { minBits: BITS })
+  const d2 = createData(tab2, idT2, { minBits: BITS })
+  await d1.range?.() // warm nothing; just ensure instances are live
+  await tab1.list('post!') // build tab1's merged cache BEFORE tab2 writes
+  const tp = await d2.submitPost({ board: 'front', title: 'from tab2' })
+  ok((await d1.listAllPosts()).some(x => x.cid === tp.cid), 'sibling-tab write reaches the other tab live (cache invalidated)')
+
   console.log('\n— profiles —')
   await alice.data.setProfile({ nick: 'alice', bio: 'builds p2p' })
   ok((await alice.data.nickOf(alice.pub)) === 'alice', 'nick resolves from profile')
