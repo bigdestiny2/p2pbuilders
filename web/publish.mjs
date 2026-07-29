@@ -10,7 +10,7 @@
  *
  * The non-local form is OUTWARD-FACING (public network). Run deliberately.
  */
-import { HiveRelayClient } from '/Users/localllm/Projects/pear-ecosystem/00-core/hiverelay/packages/client/index.js'
+import { HiveRelayClient } from 'p2p-hiverelay'
 import { readFileSync, writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'

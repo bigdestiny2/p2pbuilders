@@ -6,6 +6,7 @@ node_modules/
 .hiverelay-publish/
 .hiverelay-seed/
 .hiverelay-probe/
+.hiverelay-local/
 .p2pbuilders.key
 primary.key
 
