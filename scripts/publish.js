@@ -34,7 +34,7 @@ async function main () {
   console.log(`[publish] local storage: ${storageDir}`)
 
   // ESM import — p2p-hiverelay is type=module.
-  const { HiveRelayClient } = await import('p2p-hiverelay/client')
+  const { HiveRelayClient } = await import('p2p-hiverelay-client')
 
   const client = new HiveRelayClient(storageDir, {
     // Auto-discover relays on the public HiveRelay DHT topic.

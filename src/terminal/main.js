@@ -68,7 +68,7 @@ const fmtAgo = (ts) => {
 async function startRelaySeeder ({ node, storage }) {
   // p2p-hiverelay is an ESM module; we dynamic-import so the CommonJS
   // terminal entry can still load it cleanly.
-  const { HiveRelayClient } = await import('p2p-hiverelay/client')
+  const { HiveRelayClient } = await import('p2p-hiverelay-client')
   const seederStorage = path.join(storage, '..', 'p2pbuilders-relay-client')
   const client = new HiveRelayClient(seederStorage)
   await client.start()

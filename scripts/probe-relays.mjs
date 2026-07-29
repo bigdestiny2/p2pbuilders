@@ -1,4 +1,4 @@
-import { HiveRelayClient } from 'p2p-hiverelay/client'
+import { HiveRelayClient } from 'p2p-hiverelay-client'
 import b4a from 'b4a'
 import hypercoreId from 'hypercore-id-encoding'
 
