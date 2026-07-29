@@ -30,7 +30,7 @@ async function main () {
 
   const storageDir = path.resolve('.hiverelay-seed')
   const b4a = require('b4a')
-  const { HiveRelayClient } = await import('p2p-hiverelay/client')
+  const { HiveRelayClient } = await import('p2p-hiverelay-client')
 
   const client = new HiveRelayClient(storageDir)
   await client.start()
