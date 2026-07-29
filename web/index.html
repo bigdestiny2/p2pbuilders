@@ -14,6 +14,31 @@
     <div class="boot-name">p2pbuilders</div>
     <div class="boot-sub">connecting to peers…</div>
   </div>
+  <script>
+    // Boot watchdog (classic script: runs even when module loading is blocked).
+    // Browsers refuse ES modules on file:// — the app never starts and the
+    // splash would sit there forever. Explain instead of hanging.
+    (function () {
+      var explain = function (html) {
+        var sub = document.querySelector('.boot .boot-sub')
+        if (sub) sub.innerHTML = html
+      }
+      if (location.protocol === 'file:') {
+        setTimeout(function () {
+          if (!document.querySelector('.boot')) return
+          explain('this app can&#39;t run from a file:// URL (browsers block module scripts).<br>' +
+            'serve it instead:<br><code>cd web &amp;&amp; node dev-server.mjs</code><br>' +
+            'then open <code>http://localhost:8778</code> — or open the hyper:// link in PearBrowser.')
+        }, 1500)
+      } else {
+        setTimeout(function () {
+          if (!document.querySelector('.boot')) return
+          explain('still starting… this usually means a script failed to load.<br>' +
+            'check the browser console (F12) for errors, then hard-refresh.')
+        }, 10000)
+      }
+    })()
+  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

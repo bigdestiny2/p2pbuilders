@@ -457,6 +457,15 @@ async function seedDemo () {
   toast('demo ready'); location.hash = '#/'; route()
 }
 
+// A boot failure must never strand the splash screen silently.
+function bootSafe () {
+  boot().catch((err) => {
+    console.error('boot failed:', err)
+    const sub = document.querySelector('.boot-sub')
+    if (sub) sub.innerHTML = `failed to start: ${esc(err && err.message ? err.message : String(err))}<br>see the browser console for details.`
+  })
+}
+
 if (typeof window !== 'undefined') window.__p2pb = { get data () { return data }, get sync () { return sync }, route }
-if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot() }
+if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootSafe); else bootSafe() }
 export { boot }
