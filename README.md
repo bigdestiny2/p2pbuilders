@@ -144,6 +144,16 @@ npm run dev
 npm test
 ```
 
+## Release everything at once
+
+```
+./scripts/go-live.sh      # test → publish web drive → pear stage+release → seed
+```
+
+`SKIP_TESTS=1` / `SKIP_PEAR=1` skip stages. Needs a machine with normal
+internet (the DHT needs UDP) and your Pear writer keys. The manual steps it
+wraps are below.
+
 ## Stage a new build to Pear
 
 Staging publishes the current working tree to a `pear://` link that anyone can `pear run`.
